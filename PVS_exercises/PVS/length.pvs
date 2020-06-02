@@ -1,0 +1,24 @@
+length[T: TYPE]: THEORY
+BEGIN
+
+IMPORTING mylist[T]
+
+l, l1, l2: VAR mylist[T]
+
+length(l): RECURSIVE nat =
+  CASES l OF
+    null: 0,
+    cons(car,cdr): 1 + length(cdr)
+  ENDCASES
+MEASURE reduce_nat(0, (LAMBDA (x: T), (n: nat): n + 1))
+
+append(l1, l2): RECURSIVE mylist[T] =
+  CASES l1 OF
+    null: l2,
+    cons(car, cdr): cons(car, append(cdr, l2))
+  ENDCASES
+MEASURE length(l1) + 1
+
+length_append: LEMMA length(l1) + length(l2) = length(append(l1,l2))
+
+END length

@@ -1,0 +1,6 @@
+mylist[T: TYPE]: DATATYPE
+BEGIN
+    null: null?
+    cons(car: T, cdr: mylist): notnull? 
+END mylist
+
