@@ -1,0 +1,51 @@
+list_aux_map [ T1, T2: TYPE ]: THEORY
+BEGIN
+
+  IMPORTING list[T1]
+
+  map_syntax: LEMMA
+      FORALL (l: list[T1],
+              f: [T1->T2]):
+          map(f)(l) = map(f, l)
+
+  map_extensionality: LEMMA
+      FORALL (l: list[T1],
+              f1, f2: [T1->T2]):
+          (FORALL (m: T1 | member(m, l)): f1(m) = f2(m))
+            IMPLIES
+          map(f1, l) = map(f2, l)
+
+END list_aux_map
+
+list_aux_map_props [ T1, T2, T3: TYPE ]: THEORY
+BEGIN
+
+  IMPORTING list_aux_map
+
+  map_composition: LEMMA
+      FORALL (l: list[T1],
+              f1: [T1->T2],
+              f2: [T2->T3]):
+          map(f2, map(f1, l)) = map(f2 o f1, l)
+
+END list_aux_map_props
+
+list_map_type_compatibility [ T1, T2: TYPE, TT1: TYPE FROM T1 ]: THEORY
+BEGIN
+
+  IMPORTING list
+
+  type_conformance: LEMMA
+      FORALL (l: list[T1], f: [T1 -> T2]):
+          (FORALL (m: T1 | member(m, l)): TT1_pred(m))
+            IMPLIES
+          every[T1](TT1_pred)(l)
+
+  map_type_compatibility: LEMMA
+      FORALL (l: list[T1],
+              f: [T1->T2]):
+          (FORALL (m: T1 | member(m, l)): TT1_pred(m))
+            IMPLIES
+          map[T1, T2](f, l) = map[TT1, T2](f, l)
+
+END list_map_type_compatibility

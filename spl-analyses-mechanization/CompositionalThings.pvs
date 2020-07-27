@@ -1,0 +1,26 @@
+CompositionalThings [R:TYPE] : THEORY
+BEGIN
+  % R can be nat, for instance.
+  % T is the type of actual models.
+
+  CompositionalThing[T:TYPE] : TYPE =
+      [# idt : finite_sets[R].finite_set,
+         E : [R->T],
+         ord : { <: (orders[R].well_founded?) | FORALL (x,y:R): <(x,y) IMPLIES idt(x) AND idt(y) },
+         top : (idt) #]
+
+
+END CompositionalThings
+
+
+CompositionalFunctor[R:TYPE, T:TYPE, U:TYPE] : THEORY
+BEGIN
+  IMPORTING CompositionalThings[R]
+
+  fmap(f: [T->U], c: CompositionalThing[T]) : CompositionalThing[U] =
+    (# idt := idt(c),
+       E := LAMBDA (x:R): f(E(c)(x)),
+       ord := ord(c),
+       top := top(c) #)
+
+END CompositionalFunctor
