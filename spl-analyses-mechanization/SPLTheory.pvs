@@ -252,5 +252,87 @@ BEGIN
   commutative_feature_product_product: THEOREM
     sigma_(analyzeCM(cModel), conf) = alpha(pi_(cModel, conf))
 
+  %% FAMILY - ANNOTATIVE
+
+  PropertyADD : TYPE+
+  emptypropertyADD : PropertyADD
+  nonemptypropertyADD?(p:PropertyADD) : bool = p /= emptypropertyADD
+  toADD : [Property -> PropertyADD]
+  partialADDComposition: [PresenceCondition, PropertyADD, PropertyADD -> PropertyADD]
+
+  LiftedAnnotativeExpression : DATATYPE
+  BEGIN
+     LiftedBaseExpression(p:PropertyADD): LiftedBaseExpression?
+     LiftedChoiceExpression(pc:PresenceCondition, ae1:LiftedAnnotativeExpression, ae2:LiftedAnnotativeExpression): LiftedChoiceExpression?
+  END LiftedAnnotativeExpression
+
+  lift(ae:AnnotativeExpression): RECURSIVE LiftedAnnotativeExpression =
+    CASES ae OF
+      BaseExpression(p): LiftedBaseExpression(toADD(p)),
+      ChoiceExpression(pc, ae1, ae2): LiftedChoiceExpression(pc, lift(ae1), lift(ae2))
+    ENDCASES
+    MEASURE ae by <<
+
+  sigmaLift(vp:LiftedAnnotativeExpression): RECURSIVE PropertyADD =
+    CASES vp OF
+      LiftedBaseExpression(p): p,
+      LiftedChoiceExpression(pc, lae1, lae2): partialADDComposition(pc, sigmaLift(lae1), sigmaLift(lae2))
+    ENDCASES
+    MEASURE vp by <<
+
+  %% FAMILY - COMPOSITIONAL
+
+  LiftedCompositionalExpression: TYPE = CompositionalThing[LiftedAnnotativeExpression]
+
+  partialLiftedExpComposition: [LiftedAnnotativeExpression, LiftedAnnotativeExpression -> LiftedAnnotativeExpression]
+
+  IMPORTING CompositionalFunctor[nat,AnnotativeExpression,LiftedAnnotativeExpression]
+  liftCompositionalExpression(ce: CompositionalExpression) : LiftedCompositionalExpression = fmap(lift, ce)
+
+  getPC(lae: LiftedAnnotativeExpression): PresenceCondition =
+    CASES lae OF
+       LiftedBaseExpression(p): truepc,
+       LiftedChoiceExpression(pc, ae1, ae2): pc
+    ENDCASES
+
+  getPCi(lce: LiftedCompositionalExpression, id: {n: nat| member(n, idt(lce))}) : PresenceCondition =
+    getPC(E(lce)(id))
+
+  finitePairsLiftedExp: JUDGEMENT
+  FORALL (lce: LiftedCompositionalExpression, id: {n: nat| member(n, idt(lce))}):
+   {p: Pair |
+       	    EXISTS (pc: PresenceCondition, n: nat):
+	      ord(lce)(n, id) AND idt(p) = n AND pc(p) = getPCi(lce, n)} HAS_TYPE (is_finite[Pair])
+
+  dependentesLiftedExp(lce: LiftedCompositionalExpression, id: {n: nat | member(n, idt(lce))}): finite_sets[Pair].finite_set =
+    {p: Pair | EXISTS (pc: PresenceCondition, n: nat): ord(lce)(n, id) AND idt(p) = n AND pc(p) = getPCi(lce, n)}
+
+  dependentsLiftedExp(lce: LiftedCompositionalExpression, id: {n: nat | member(n, idt(lce))}): list[Pair] =
+    set2list(dependentesLiftedExp(lce, id))
+
+  foldlLiftedExp(f: [LiftedAnnotativeExpression, LiftedAnnotativeExpression -> LiftedAnnotativeExpression], lae: LiftedAnnotativeExpression, l: list[LiftedAnnotativeExpression]): RECURSIVE LiftedAnnotativeExpression =
+    CASES l OF
+      null: lae,
+      cons(x, xs): foldlLiftedExp(f, f(lae, x), xs)
+    ENDCASES
+    MEASURE length(l)
+
+  sigmaLift_r(lce: LiftedCompositionalExpression, idt: (idt(lce))): RECURSIVE PropertyADD =
+    sigmaLift(
+        foldlLiftedExp(
+	    partialLiftedExpComposition,
+	    E(lce)(idt),
+	    map(LAMBDA(p: {par: Pair | member(par, dependentsLiftedExp(lce, idt))}): LiftedBaseExpression(sigmaLift_r(lce, idt(p))) ,
+	        dependentsLiftedExp(lce, idt)
+	    )
+	)
+   )
+   MEASURE idt BY ord(lce)
+
+  sigmaLift_(lce: LiftedCompositionalExpression): PropertyADD =
+    sigmaLift_r(lce, top(lce))
+
+    
+
 
 END SPLTheory
