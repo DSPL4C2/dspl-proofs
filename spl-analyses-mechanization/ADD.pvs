@@ -1,0 +1,45 @@
+ADD_def [n: posnat] : THEORY
+%-------------------------------------------
+% Algebraic Decision Diagrams on n variables
+%-------------------------------------------
+  BEGIN
+
+  IMPORTING structures@arrays[n]
+
+  variables: TYPE = ArrayOf[boolean]
+  ADD[T: TYPE]: TYPE = [variables -> T]
+
+  END ADD_def
+
+
+ADD_ops [T: TYPE, n: posnat] : THEORY
+%-------------------------------------------
+% Operations on ADDs
+%-------------------------------------------
+  BEGIN
+
+  IMPORTING ADD_def[n]
+
+  f, g: VAR ADD[n][T]
+  op: VAR [T, T -> T]
+  unary_op: VAR [T -> T]
+  val: VAR variables
+
+  % Lifting of codomain value into constant ADD
+  constant(t: T): ADD[T] = LAMBDA(val): t
+  CONVERSION constant
+
+  % ADD operations
+  apply(f, g, op): ADD[T] = LAMBDA val: op(f(val), g(val))
+
+  unary_apply(f, unary_op): ADD[T] = LAMBDA val: unary_op(f(val))
+
+  test: VAR ADD[boolean]
+  % if-then-else operator
+  ite(test, f, g): ADD[T] = LAMBDA val:
+      IF test(val)
+          THEN f(val)
+          ELSE g(val)
+      ENDIF
+
+ END ADD_ops
