@@ -259,6 +259,9 @@ BEGIN
   PCtoADD: [PresenceCondition -> ADD[boolean]]
   ConftoVariable: [Conf -> variables]
 
+  equivalence: AXIOM FORALL( p: PresenceCondition, c: Conf, v: variables, a: ADD[boolean]) :
+  	       PCtoADD(p) = a AND ConftoVariable(c) = v IMPLIES a(v) IFF c(p)
+
   IMPORTING ADD_ops[Property, n1]
   hatSigma(ae: AnnotativeExpression): RECURSIVE ADD[Property] =
     CASES ae OF
@@ -269,8 +272,11 @@ BEGIN
 
   ADD_aplication(add: ADD[Property], c: Conf): Property = add(ConftoVariable(c))
 
-  %% commutative_family_product_family: THEOREM
-  %%   ADD_aplication(hatSigma(aExpression), conf) = sigma(aExpression, conf)
+  aExpression: Var AnnotativeExpression
+  configuration: Var Conf
+
+  commutative_family_product_family: THEOREM
+    ADD_aplication(hatSigma(aExpression), configuration) = sigma(aExpression, configuration)
 
   %% FAMILY - COMPOSITIONAL
 
