@@ -254,15 +254,15 @@ BEGIN
 
   %% FAMILY - ANNOTATIVE
 
-  n1: posnat
-  IMPORTING ADD_def[n1]
+  fmCardinality: posnat
+  IMPORTING ADD_def[fmCardinality]
   PCtoADD: [PresenceCondition -> ADD[boolean]]
   ConftoVariable: [Conf -> variables]
 
-  equivalence: AXIOM FORALL( p: PresenceCondition, c: Conf, v: variables, a: ADD[boolean]) :
-  	       PCtoADD(p) = a AND ConftoVariable(c) = v IMPLIES a(v) IFF c(p)
+  PCequivalence: AXIOM FORALL( p: PresenceCondition, c: Conf) :
+  	       PCtoADD(p)(ConftoVariable(c)) IFF c(p)
 
-  IMPORTING ADD_ops[Property, n1]
+  IMPORTING ADD_ops[Property, fmCardinality]
   hatSigma(ae: AnnotativeExpression): RECURSIVE ADD[Property] =
     CASES ae OF
       BaseExpression(p): constant(p),
@@ -272,16 +272,40 @@ BEGIN
 
   ADD_aplication(add: ADD[Property], c: Conf): Property = add(ConftoVariable(c))
 
-  aExpression: Var AnnotativeExpression
-  configuration: Var Conf
+  anExpression: Var AnnotativeExpression
 
   commutative_family_product_family: THEOREM
-    ADD_aplication(hatSigma(aExpression), configuration) = sigma(aExpression, configuration)
+    ADD_aplication(hatSigma(anExpression), conf) = sigma(anExpression, conf)
 
   %% FAMILY - COMPOSITIONAL
+  partialADDComposition: [ADD[Property], ADD[Property] -> ADD[Property]]
 
+  foldlADD(f: [ADD[Property], ADD[Property] -> ADD[Property]],
+  	      ad: ADD[Property],
+	      l: list[ADD[Property]]): RECURSIVE ADD[Property] =
+    CASES l OF
+      null: ad,
+      cons(x, xs): foldlADD(f, f(ad, x), xs)
+    ENDCASES
+  MEASURE l by << 
 
-  %% commutative_feature_family_feature_product: THEOREM
-  %%   ADD_aplication(hatSigma(cExpression), conf) = sigma_(cExpression, conf)
+  hatSigma_r(ce: CompositionalExpression, idt: (idt(ce))) : RECURSIVE ADD[Property] =
+    foldlADD(partialADDComposition,
+	     hatSigma(E(ce)(idt)),
+	     map(
+	       LAMBDA(p: {par: Pair | member(par, dependentsExp(ce, idt))}):
+	         hatSigma_r(ce, idt(p)),
+	       dependentsExp(ce, idt)
+	     )
+    )
+  MEASURE idt by ord(ce)
+
+  hatSigma(ce: CompositionalExpression): ADD[Property] =
+    hatSigma_r(ce, top(ce))
+
+  cExpression: Var CompositionalExpression
+
+  commutative_feature_family_feature_product: THEOREM
+    ADD_aplication(hatSigma(cExpression), conf) = sigma_(cExpression, conf)
 
 END SPLTheory
