@@ -304,6 +304,10 @@ BEGIN
     hatSigma_r(ce, top(ce))
 
   cExpression: Var CompositionalExpression
+  l2: Var list[AnnotativeExpression]
+
+  isomorphismExpADDList: AXIOM
+    foldlADD(partialADDComposition, hatSigma(anExpression), map(hatSigma, l2)) = hatSigma(foldlExp(partialExpComposition, anExpression, l2)) 
 
   commutative_feature_family_feature_product: THEOREM
     ADD_aplication(hatSigma(cExpression), conf) = sigma_(cExpression, conf)
