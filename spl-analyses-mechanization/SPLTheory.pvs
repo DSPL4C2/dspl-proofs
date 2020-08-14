@@ -219,6 +219,10 @@ BEGIN
 
   isomorphismModelExpList: AXIOM foldlExp(partialExpComposition, hatAlpha(am), map(hatAlpha,l)) = hatAlpha(foldl(partialModelComposition, am, l))
 
+  isomorphismExpComposition: AXIOM
+    FORALL( a1, a2: AnnotativeExpression, c: Conf):
+      partialExpComposition(BaseExpression(sigma(a1, c)), BaseExpression(sigma(a2, c))) = BaseExpression(sigma(partialExpComposition(a1, a2), c)) 
+
 
   IMPORTING list_aux_map_props,
             list_map_type_compatibility
@@ -307,9 +311,23 @@ BEGIN
   l2: Var list[AnnotativeExpression]
 
   isomorphismExpADDList: AXIOM
-    foldlADD(partialADDComposition, hatSigma(anExpression), map(hatSigma, l2)) = hatSigma(foldlExp(partialExpComposition, anExpression, l2)) 
+    foldlADD(partialADDComposition, hatSigma(anExpression), map(hatSigma, l2)) = hatSigma(foldlExp(partialExpComposition, anExpression, l2))
 
-  commutative_feature_family_feature_product: THEOREM
+  emptyPropertyADD: AXIOM
+    FORALL(ce: CompositionalExpression, i: (idt(ce)), c: Conf): NOT c(getPCi(ce, i)) IMPLIES hatSigma_r(ce, i)(ConftoVariable(c)) = emptyproperty
+
+  foldlADD_sigma_commutation: LEMMA 
+    foldlADD(partialADDComposition, hatSigma(anExpression), map(hatSigma, l2))(ConftoVariable(conf)) = sigma(foldlExp(partialExpComposition, BaseExpression(sigma(anExpression, conf)), map(LAMBDA(a: AnnotativeExpression): BaseExpression(sigma(a, conf)), l2)), conf)
+
+  foldlADDEquality: AXIOM
+    FORALL(v: variables, a1, a2: ADD[Property], l1, l2: list[ADD[Property]]):
+      a1(v) = a2(v) AND map(LAMBDA(a: ADD[Property]): a(v), l1) = map(LAMBDA(a: ADD[Property]): a(v), l2)
+        IMPLIES foldlADD(partialADDComposition, a1, l1)(v) = foldlADD(partialADDComposition, a2, l2)(v)
+
+  sigmaEqualHatSigma(ce: CompositionalExpression, c: Conf): [(idt(ce)) -> bool] =
+    LAMBDA(i: (idt(ce))): hatSigma_r(ce, i)(ConftoVariable(c)) = sigma_r(ce, i, c)
+
+  commutative_feature_family_feature_produc: THEOREM
     ADD_aplication(hatSigma(cExpression), conf) = sigma_(cExpression, conf)
 
 END SPLTheory
