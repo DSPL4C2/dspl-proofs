@@ -219,11 +219,6 @@ BEGIN
 
   isomorphismModelExpList: AXIOM foldlExp(partialExpComposition, hatAlpha(am), map(hatAlpha,l)) = hatAlpha(foldl(partialModelComposition, am, l))
 
-  isomorphismExpComposition: AXIOM
-    FORALL( a1, a2: AnnotativeExpression, c: Conf):
-      partialExpComposition(BaseExpression(sigma(a1, c)), BaseExpression(sigma(a2, c))) = BaseExpression(sigma(partialExpComposition(a1, a2), c)) 
-
-
   IMPORTING list_aux_map_props,
             list_map_type_compatibility
 
@@ -315,9 +310,6 @@ BEGIN
 
   emptyPropertyADD: AXIOM
     FORALL(ce: CompositionalExpression, i: (idt(ce)), c: Conf): NOT c(getPCi(ce, i)) IMPLIES hatSigma_r(ce, i)(ConftoVariable(c)) = emptyproperty
-
-  foldlADD_sigma_commutation: LEMMA 
-    foldlADD(partialADDComposition, hatSigma(anExpression), map(hatSigma, l2))(ConftoVariable(conf)) = sigma(foldlExp(partialExpComposition, BaseExpression(sigma(anExpression, conf)), map(LAMBDA(a: AnnotativeExpression): BaseExpression(sigma(a, conf)), l2)), conf)
 
   foldlADDEquality: AXIOM
     FORALL(v: variables, a1, a2: ADD[Property], l1, l2: list[ADD[Property]]):
