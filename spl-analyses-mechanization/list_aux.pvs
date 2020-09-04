@@ -3,6 +3,11 @@ BEGIN
 
   IMPORTING list[T1]
 
+  nullmap: LEMMA
+      FORALL(l: list[T1],
+             f: [T1->T2]):
+	   map(f, l) = null IMPLIES l = null
+
   map_syntax: LEMMA
       FORALL (l: list[T1],
               f: [T1->T2]):

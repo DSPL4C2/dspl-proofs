@@ -1,4 +1,8 @@
 (list_aux_map
+ (nullmap 0
+  (nullmap-1 nil 3806663660
+   ("" (skeep) (("" (assert) (("" (grind) nil nil)) nil)) nil)
+   ((map adt-def-decl "list[T1]" list_adt_map nil)) shostak))
  (map_syntax 0
   (map_syntax-1 nil 3788027745
    ("" (induct l)
@@ -81,8 +85,7 @@
     nil)
    ((map_syntax formula-decl nil list_aux_map nil)
     (T2 formal-type-decl nil list_aux_map_props nil)
-    (T3 formal-type-decl nil list_aux_map_props nil)
-    (map adt-def-decl "list[T1]" list_adt_map nil)
+    (T3 formal-type-decl nil list_aux_map_props nil) nil
     (T1 formal-type-decl nil list_aux_map_props nil)
     (list type-decl nil list_adt nil)
     (map_list_composition formula-decl nil map_props nil)
@@ -116,17 +119,10 @@
         nil))
       nil))
     nil)
-   ((cons1_var!1 skolem-const-decl "T1" list_map_type_compatibility
-     nil)
-    (cons? adt-recognizer-decl "[list -> boolean]" list_adt nil)
+   (nil (cons? adt-recognizer-decl "[list -> boolean]" list_adt nil)
     (cons adt-constructor-decl "[[T, list] -> (cons?)]" list_adt nil)
-    (cons2_var!1 skolem-const-decl "list[T1]"
-     list_map_type_compatibility nil)
-    (m skolem-const-decl "{m: T1 | member(m, cons2_var!1)}"
-     list_map_type_compatibility nil)
-    (list_induction formula-decl nil list_adt nil)
-    (T1 formal-type-decl nil list_map_type_compatibility nil)
-    (every adt-def-decl "boolean" list_adt nil)
+    nil nil (list_induction formula-decl nil list_adt nil)
+    (T1 formal-type-decl nil list_map_type_compatibility nil) nil
     (PRED type-eq-decl nil defined_types nil)
     (TT1_pred const-decl "[T1 -> boolean]" list_map_type_compatibility
      nil)
@@ -164,17 +160,10 @@
         nil))
       nil))
     nil)
-   ((cons1_var!1 skolem-const-decl "T1" list_map_type_compatibility
-     nil)
-    (cons? adt-recognizer-decl "[list -> boolean]" list_adt nil)
+   (nil (cons? adt-recognizer-decl "[list -> boolean]" list_adt nil)
     (cons adt-constructor-decl "[[T, list] -> (cons?)]" list_adt nil)
-    (cons2_var!1 skolem-const-decl "list[T1]"
-     list_map_type_compatibility nil)
-    (m skolem-const-decl "{m: T1 | member(m, cons2_var!1)}"
-     list_map_type_compatibility nil)
-    (list_induction formula-decl nil list_adt nil)
-    (T1 formal-type-decl nil list_map_type_compatibility nil)
-    (every adt-def-decl "boolean" list_adt nil)
+    nil nil (list_induction formula-decl nil list_adt nil)
+    (T1 formal-type-decl nil list_map_type_compatibility nil) nil
     (PRED type-eq-decl nil defined_types nil)
     (TT1_pred const-decl "[T1 -> boolean]" list_map_type_compatibility
      nil)
@@ -210,20 +199,14 @@
      ("3" (hide 2) (("3" (use type_conformance) nil nil)) nil))
     nil)
    ((type_conformance formula-decl nil list_map_type_compatibility nil)
-    (cons1_var!1 skolem-const-decl "T1" list_map_type_compatibility
-     nil)
-    (m skolem-const-decl "{m: T1 | member(m, cons2_var!1)}"
-     list_map_type_compatibility nil)
-    (cons2_var!1 skolem-const-decl "list[T1]"
-     list_map_type_compatibility nil)
+    nil nil nil
     (cons? adt-recognizer-decl "[list -> boolean]" list_adt nil)
     (list_cons_extensionality formula-decl nil list_adt nil)
     (cons adt-constructor-decl "[[T, list] -> (cons?)]" list_adt nil)
     (list_induction formula-decl nil list_adt nil)
     (T1 formal-type-decl nil list_map_type_compatibility nil)
     (restrict const-decl "R" restrict nil)
-    (TT1 formal-subtype-decl nil list_map_type_compatibility nil)
-    (map adt-def-decl "list[T1]" list_adt_map nil)
+    (TT1 formal-subtype-decl nil list_map_type_compatibility nil) nil
     (= const-decl "[T, T -> boolean]" equalities nil)
     (list type-decl nil list_adt nil)
     (T2 formal-type-decl nil list_map_type_compatibility nil)
@@ -233,7 +216,6 @@
     (member def-decl "bool" list_props nil)
     (TT1_pred const-decl "[T1 -> boolean]" list_map_type_compatibility
      nil)
-    (PRED type-eq-decl nil defined_types nil)
-    (every adt-def-decl "boolean" list_adt nil))
+    (PRED type-eq-decl nil defined_types nil) nil)
    shostak)))
 

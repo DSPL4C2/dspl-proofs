@@ -311,7 +311,10 @@ BEGIN
   emptyPropertyADD: AXIOM
     FORALL(ce: CompositionalExpression, i: (idt(ce)), c: Conf): NOT c(getPCi(ce, i)) IMPLIES hatSigma_r(ce, i)(ConftoVariable(c)) = emptyproperty
 
-  foldlADDEquality: AXIOM
+  partialADDCompositionEquality: AXIOM FORALL (a1, a2, a3, a4: ADD[Property], v: variables):
+    a1(v) = a2(v) AND a3(v) = a4(v) IMPLIES partialADDComposition(a1, a3)(v) = partialADDComposition(a2, a4)(v)
+
+  foldlADDEquality: LEMMA
     FORALL(v: variables, a1, a2: ADD[Property], l1, l2: list[ADD[Property]]):
       a1(v) = a2(v) AND map(LAMBDA(a: ADD[Property]): a(v), l1) = map(LAMBDA(a: ADD[Property]): a(v), l2)
         IMPLIES foldlADD(partialADDComposition, a1, l1)(v) = foldlADD(partialADDComposition, a2, l2)(v)
