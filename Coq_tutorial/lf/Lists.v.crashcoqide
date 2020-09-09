@@ -1092,20 +1092,17 @@ Definition option_elim (d : nat) (o : natoption) : nat :=
     Using the same idea, fix the [hd] function from earlier so we don't
     have to pass a default element for the [nil] case.  *)
 
-Definition hd_error (l : natlist) : natoption := 
-  match l with
-  | nil => None
-  | h::t => Some h
-  end.
+Definition hd_error (l : natlist) : natoption
+  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
 
 Example test_hd_error1 : hd_error [] = None.
-Proof. reflexivity. Qed.
+ (* FILL IN HERE *) Admitted.
 
 Example test_hd_error2 : hd_error [1] = Some 1.
-Proof. reflexivity. Qed.
+ (* FILL IN HERE *) Admitted.
 
 Example test_hd_error3 : hd_error [5;6] = Some 5.
-Proof. reflexivity. Qed.
+ (* FILL IN HERE *) Admitted.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (option_elim_hd)  
@@ -1115,10 +1112,7 @@ Proof. reflexivity. Qed.
 Theorem option_elim_hd : forall (l:natlist) (default:nat),
   hd default l = option_elim default (hd_error l).
 Proof.
-  intros l default. destruct l.
-  - reflexivity.
-  - reflexivity.
-Qed.
+  (* FILL IN HERE *) Admitted.
 (** [] *)
 
 End NatList.
@@ -1152,8 +1146,7 @@ Definition eqb_id (x1 x2 : id) :=
 (** **** Exercise: 1 star, standard (eqb_id_refl)  *)
 Theorem eqb_id_refl : forall x, true = eqb_id x x.
 Proof.
-  intros x. destruct x. simpl. rewrite <- eqb_refl. reflexivity.
-Qed.
+  (* FILL IN HERE *) Admitted.
 (** [] *)
 
 (** Now we define the type of partial maps: *)
@@ -1199,8 +1192,7 @@ Theorem update_eq :
   forall (d : partial_map) (x : id) (v: nat),
     find x (update d x v) = Some v.
 Proof.
-  intros d x v. simpl. rewrite <- eqb_id_refl. reflexivity.
-Qed.
+ (* FILL IN HERE *) Admitted.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (update_neq)  *)
@@ -1208,8 +1200,7 @@ Theorem update_neq :
   forall (d : partial_map) (x y : id) (o: nat),
     eqb_id x y = false -> find x (update d y o) = find x d.
 Proof.
-  intros d x y o. intros H. simpl. rewrite -> H. reflexivity.
-Qed.
+ (* FILL IN HERE *) Admitted.
 (** [] *)
 End PartialMap.
 
@@ -1224,13 +1215,8 @@ Inductive baz : Type :=
 (** How _many_ elements does the type [baz] have? (Explain in words,
     in a comment.) *)
 
-(*Como o tipo baz não tem um caso base, temos que ele não pode ser definido
-a partir de uma expressão finita. Como o contrutor Baz2 difere do construtor Baz1
-pela presença de um booleano, podemos fazer um elemento baz consistente de um Baz2,
-seguido por n Baz1, depois mais um Baz2 e uma sequência infinita de baz1. Como esse
-n pode ser arbitrariamente grante, temos uma infinidade de possíveis elementos do
-tipo baz.
-*)
+(* FILL IN HERE *)
+
 (* Do not modify the following line: *)
 Definition manual_grade_for_baz_num_elts : option (nat*string) := None.
 (** [] *)
