@@ -63,7 +63,10 @@ Proof.
 Theorem plus_one_r' : forall n:nat,
   n + 1 = S n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply nat_ind.
+  - reflexivity.
+  - intros. simpl. rewrite H. reflexivity.
+Qed.
 (** [] *)
 
 (** Coq generates induction principles for every datatype defined with
@@ -181,8 +184,9 @@ Inductive byntree : Type :=
     Give an [Inductive] definition of [ExSet]: *)
 
 Inductive ExSet : Type :=
-  (* FILL IN HERE *)
-.
+  | con1 (b: bool)
+  | con2 (n: nat) (e: ExSet).
+
 (** [] *)
 
 (* ################################################################# *)
@@ -240,6 +244,12 @@ Check tree_ind.
             forall m : mytype X, P m
 *) 
 (** [] *)
+Inductive mytype (X: Type) : Type :=
+  | constr1 (x: X)
+  | constr2 (n: nat)
+  | constr3 (m: mytype X) (n: nat).
+
+Check mytype_ind.
 
 (** **** Exercise: 1 star, standard, optional (foo)  
 
@@ -255,6 +265,12 @@ Check tree_ind.
              forall f2 : foo X Y, P f2
 *) 
 (** [] *)
+Inductive foo (X Y: Type) : Type :=
+  | bar (x: X)
+  | baz (y: Y)
+  | quux (f1: nat -> foo X Y).
+
+Check foo_ind.
 
 (** **** Exercise: 1 star, standard, optional (foo')  
 
@@ -270,11 +286,12 @@ Inductive foo' (X:Type) : Type :=
      foo'_ind :
         forall (X : Type) (P : foo' X -> Prop),
               (forall (l : list X) (f : foo' X),
-                    _______________________ ->
-                    _______________________   ) ->
-             ___________________________________________ ->
-             forall f : foo' X, ________________________
+                    P f ->
+                    P (C1 X l f)   ) ->
+             P (C2 X)->
+             forall f : foo' X, P f
 *)
+Check foo'_ind.
 
 (** [] *)
 
@@ -416,9 +433,27 @@ Proof.
     induction, and state the theorem and proof in terms of this
     defined proposition.  *)
 
-(* FILL IN HERE 
+Definition PlusAsc (n : nat) : Prop :=
+  forall m p, n + (m +p) = (n + m) + p.
 
-    [] *)
+Definition PlusCmm (n : nat) : Prop :=
+  forall m, n + m = m + n.
+
+Theorem plus_assoc''' : forall n, PlusAsc n.
+Proof.
+  apply nat_ind.
+  - unfold PlusAsc. intros m p. reflexivity.
+  - intros. unfold PlusAsc in *. intros. simpl.
+    rewrite H. reflexivity.
+Qed.
+
+Theorem plus_comm'''': forall n, PlusCmm n.
+Proof.
+  apply nat_ind.
+  - unfold PlusCmm. intros m. simpl. apply plus_n_O.
+  - intros. unfold PlusCmm in *. intros m. simpl.
+    rewrite H. apply plus_n_Sm.
+Qed.
 
 (* ################################################################# *)
 (** * Induction Principles in [Prop] *)
