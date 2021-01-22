@@ -4,9 +4,6 @@ Inductive Property : Type.
 
 Inductive PresenceCondition : Type.
 
-Inductive ConfSatisfyPC : PresenceCondition -> (PresenceCondition -> bool) -> Prop :=
-  | Satisfy pc conf (H: conf pc = true) : ConfSatisfyPC pc conf.
-
 Inductive VariableStructure (X : Type) : Type :=
   | Base (x : X)
   | Choice (pc : PresenceCondition) (s1 s2 : VariableStructure X).
