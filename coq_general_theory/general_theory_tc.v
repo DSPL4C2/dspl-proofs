@@ -11,6 +11,8 @@ Class Product (X : Type) {Y : Type} `{Property Y} : Type :=
   alpha : X -> Y
 }.
 
+Axiom AlphaEmpty : forall (X Y : Type) `{Property Y} `{Product X}, alpha emptyProduct = emptyProperty.
+
 Class PresenceCondition (X : Type) : Type :=
 {}.
 
@@ -105,3 +107,44 @@ Definition PiCompRelation {Prod PC : Type} `{Product Prod} `{PresenceCondition P
 
 Definition SigmaCompRelation {Proper PC : Type} `{Property Proper} `{PresenceCondition PC} (ce : CompositionalExpression) (c : PC -> bool) (p: Proper) (partialEC : AnnotativeExpression -> AnnotativeExpression -> AnnotativeExpression) : Prop :=
   SigmaCompRelation_aux ce (ce.(E) ce.(top)) (ce.(dependents) ce.(top)) c partialEC p.
+
+Theorem aux_commutative_feature_product_product {Prod Proper PC : Type} {Hp : Property Proper}
+  `{@Product Prod Proper Hp} `{PresenceCondition PC} : forall (l : list (PC * nat)) (cm : CompositionalModel) 
+  (ce : CompositionalExpression) (c : PC -> bool) (prod : Prod) (proper : Proper) (ae : AnnotativeExpression)
+  (partialMC : AnnotativeModel -> AnnotativeModel -> AnnotativeModel) (am : AnnotativeModel)
+  (partialEC : AnnotativeExpression -> AnnotativeExpression -> AnnotativeExpression),
+  ( forall (am1 am2 : AnnotativeModel) (ae1 ae2 : AnnotativeExpression),
+    HatAlphaRelation am1 ae1 -> HatAlphaRelation am2 ae2 -> HatAlphaRelation (partialMC am1 am2) (partialEC ae1 ae2)) ->
+  HatAlphaCompRelation cm ce -> PiCompRelation_aux cm am l c partialMC prod -> alpha prod = proper ->
+  HatAlphaRelation am ae -> SigmaCompRelation_aux ce ae l c partialEC proper.
+Proof.
+  intros. generalize dependent ae. generalize dependent proper. induction H3.
+  - intros. constructor. apply (commutative_product_family_product am _ _ prod);auto.
+  - intros. apply (TruePCCaseSig _ _ _ _ _ (alpha prod2)).
+    + auto.
+    + inversion H2. rewrite <- H8. apply IHPiCompRelation_aux1;try(auto).
+    + apply IHPiCompRelation_aux2;try(auto). apply H1.
+      * auto.
+      * constructor. reflexivity.
+  - intros. constructor. auto. apply IHPiCompRelation_aux;try(auto).
+    + apply H1. auto. constructor. apply (AlphaEmpty Prod Proper).
+Qed.
+
+Theorem commutative_feature_product_product {Prod Proper PC : Type} {Hp : Property Proper}
+  `{@Product Prod Proper Hp} `{PresenceCondition PC} : forall (cm : CompositionalModel) 
+  (ce : CompositionalExpression) (c : PC -> bool) (prod : Prod) (proper : Proper)
+  (partialMC : AnnotativeModel -> AnnotativeModel -> AnnotativeModel)
+  (partialEC : AnnotativeExpression -> AnnotativeExpression -> AnnotativeExpression),
+  ( forall (am1 am2 : AnnotativeModel) (ae1 ae2 : AnnotativeExpression),
+    HatAlphaRelation am1 ae1 -> HatAlphaRelation am2 ae2 -> HatAlphaRelation (partialMC am1 am2) (partialEC ae1 ae2)) ->
+  HatAlphaCompRelation cm ce -> PiCompRelation cm c prod partialMC -> alpha prod = proper ->
+  SigmaCompRelation ce c proper partialEC.
+Proof.
+  intros. unfold SigmaCompRelation. unfold PiCompRelation in H3. 
+  apply (aux_commutative_feature_product_product _ cm _ _ prod _ _ partialMC (E cm (top cm)));try(auto).
+  - inversion H2. rewrite <- H7. rewrite <- H5. auto.
+  - inversion H2. rewrite <- H5. apply H6.
+Qed.
+  
+
+
