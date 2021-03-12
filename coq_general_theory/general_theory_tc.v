@@ -346,7 +346,7 @@ Theorem commutative_feature_family_feature_produc {Proper PC : Type} `{Property 
     (forall (ae : AnnotativeExpression) (l : list AnnotativeExpression),
     fold_left partialADDC (map HatSigma l) (HatSigma ae) = 
     HatSigma(fold_left partialEC l ae)) -> (forall (x : ADD Proper * (PC * nat))
-    (listzip : list ((ADD Proper) * (PC * nat))),
+    (listzip : list ((ADD Proper) * (PC * nat))) (ce : CompositionalExpression),
     In x listzip -> c (fst (snd x)) = false -> HatSigmaCompRelation ce (snd (snd x)) 
     partialADDC (fst x) -> (fst x) (confToVariable c) = emptyProperty) -> 
     (forall (v : variables) (a1 a2 : ADD Proper) (l1 l2 : list (ADD Proper)),
@@ -388,6 +388,37 @@ Proof.
       * symmetry. apply (zipLength _ (dependents ce n));auto.
       * intros. destruct (c (fst (snd x))) eqn: E.
         { simpl. unfold constant. reflexivity. }
-        { simpl. unfold constant. apply (H2 _ lzip);try(auto). }
+        { simpl. unfold constant. apply (H2 _ lzip ce);try(auto). }
     + rewrite H'''. auto.
 Qed.
+
+Theorem commutative_feature_family_product {Prod Proper PC : Type} {Hp : Property Proper}
+  `{@Product Prod Proper Hp} `{PresenceCondition PC} : forall (cm : CompositionalModel) 
+  (ce : CompositionalExpression) (c : PC -> bool) (prod : Prod) (proper : Proper)
+  (add : ADD Proper) (partialMC : partialMCT) (partialEC : partialECT) 
+  (partialADDC : partialADDCT), ( forall (am1 am2 : AnnotativeModel) 
+  (ae1 ae2 : AnnotativeExpression), HatAlphaRelation am1 ae1 -> HatAlphaRelation am2 ae2 
+  -> HatAlphaRelation (partialMC am1 am2) (partialEC ae1 ae2)) -> (forall 
+  (x : ADD Proper * (PC * nat)) (listzip : list ((ADD Proper) * (PC * nat))) 
+  (ce : CompositionalExpression), In x listzip -> c (fst (snd x)) = false -> 
+  HatSigmaCompRelation ce (snd (snd x)) partialADDC (fst x) -> (fst x) 
+  (confToVariable c) = emptyProperty) -> (forall (ae : AnnotativeExpression) 
+  (l : list AnnotativeExpression), fold_left partialADDC (map HatSigma l) (HatSigma ae) = 
+  HatSigma(fold_left partialEC l ae)) -> (forall (v : variables) (a1 a2 : ADD Proper) 
+  (l1 l2 : list (ADD Proper)), (a1 v = a2 v /\ map (fun a : (ADD Proper) => a v) l1 = map 
+  (fun a : (ADD Proper) => a v) l2 )-> (fold_left partialADDC l1 a1) v = 
+  (fold_left partialADDC l2 a2) v)  -> PiCompRelation cm c prod partialMC -> 
+  alpha prod = proper -> HatAlphaCompRelation cm ce -> 
+  HatSigmaCompRelation ce (top ce) partialADDC add -> add (confToVariable c) = proper.
+Proof.
+  intros. apply (commutative_feature_product_product cm ce c prod proper) in H1;try(auto).
+  apply (commutative_feature_family_feature_produc ce c _ _ add) in  H3;try(auto). 
+  unfold SigmaCompRelation in *. apply (SigmaCompProperEquivalence (dependents ce (top ce))
+  ce (E ce (top ce)) c partialEC). split;auto.
+Qed.
+
+
+
+
+
+
