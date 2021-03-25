@@ -1,76 +1,74 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Program.Basics.
+Require Import Coq.Init.Wf.
 
-Definition variables : Type := list bool.
+Load add.
+Load compositionalThing.
 
-Definition ADD (T : Type) : Type := variables -> T.
-
-Definition constant {T : Type} (t : T) : ADD T := fun (v : variables) => t.
-
-Definition apply {T : Type} (f g : ADD T) (op : T -> T -> T) : ADD T :=
-  fun (v : variables) => op (f v) (g v).
-
-Definition unary_apply {T : Type} (f : ADD T) (op : T -> T) : ADD T :=
-  fun (v : variables) => op (f v).
-
-Definition ite {T : Type} (test : ADD bool) (f g : ADD T) : ADD T :=
-  fun (v : variables) => if (test v) then (f v)
-                                     else (g v).
-
-Class Property (X : Type) : Type :=
+Class Property (Proper : Type) : Type :=
 {
-  emptyProperty : X
+  emptyProperty : Proper
 }.
 
-Class Product (X : Type) {Y : Type} `{Property Y} : Type :=
+Class Product (Prod : Type) {Proper : Type} `{Property Proper} : Type :=
 {
-  emptyProduct : X;
-  alpha : X -> Y
+  emptyProduct : Prod;
+  alpha : Prod -> Proper
 }.
 
-Axiom AlphaEmpty : forall (X Y : Type) `{Property Y} `{Product X}, alpha emptyProduct = emptyProperty.
+Axiom AlphaEmpty : forall (Prod Proper : Type) `{Property Proper} `{Product Prod}, 
+  alpha emptyProduct = emptyProperty.
 
-Class PresenceCondition (X : Type) : Type :=
+Class PresenceCondition (PC : Type) : Type :=
 {
-  pcToADD : X -> (ADD bool);
-  confToVariable : (X -> bool) -> variables
+  pcToADD : PC -> (ADD bool);
+  confToVariable : (PC -> bool) -> variables
 }.
 
-Axiom PCEquivalence : forall {PC : Type} `{PresenceCondition PC} (pc : PC) (c : PC -> bool),
+Variable Prod Proper PC : Type.
+
+Definition conf : Type := PC -> bool.
+
+Axiom PCEquivalence : forall `{PresenceCondition PC} (pc : PC) (c : conf),
   pcToADD(pc)(confToVariable c) = c pc.
 
-Inductive VariableStructure (X Y : Type) `{PresenceCondition Y}: Type :=
+Inductive VariableStructure {X : Type} `{PresenceCondition PC}: Type :=
   | Base (x : X)
-  | Choice (pc : Y) (s1 s2 : VariableStructure X Y).
+  | Choice (pc : PC) (s1 s2 : VariableStructure).
 
-Definition AnnotativeModel {X Y: Type} `{Product X} `{PresenceCondition Y}: Type := VariableStructure X Y.
+Definition AnnotativeModel `{Product Prod} {H : PresenceCondition PC} : Type := 
+  @VariableStructure Prod H.
 
-Definition AnnotativeExpression {X Y: Type} `{Property X} `{PresenceCondition Y}: Type := VariableStructure X Y.
+Definition AnnotativeExpression `{Property Proper} {H : PresenceCondition PC} : Type := 
+  @VariableStructure Proper H.
 
-Inductive PiRelation {Prod PC : Type} `{Product Prod} `{PresenceCondition PC} : AnnotativeModel -> (PC -> bool) -> Prod -> Prop :=
-  | BaseCasePi (p : Prod) (c:  PC -> bool) : PiRelation (Base Prod PC p) c p
-  | Choice1Pi (am1 am2 : AnnotativeModel) (p : Prod) (pc : PC) (c : PC -> bool) 
-      (H1 : c pc = true) (H2 : PiRelation am1 c p) : PiRelation (Choice Prod PC pc am1 am2) c p
-  | Choice2Pi (am1 am2 : AnnotativeModel) (p : Prod) (pc : PC) (c : PC -> bool) 
-      (H1 : c pc = false) (H2 : PiRelation am2 c p) : PiRelation (Choice Prod PC pc am1 am2) c p.
+Inductive PiRelation `{Product Prod} `{PresenceCondition PC} : AnnotativeModel -> 
+  conf -> Prod -> Prop :=
+  | BaseCasePi (p : Prod) (c:  conf) : PiRelation (Base p) c p
+  | Choice1Pi (am1 am2 : AnnotativeModel) (p : Prod) (pc : PC) (c : conf) 
+      (H1 : c pc = true) (H2 : PiRelation am1 c p) : PiRelation (Choice pc am1 am2) c p
+  | Choice2Pi (am1 am2 : AnnotativeModel) (p : Prod) (pc : PC) (c : conf) 
+      (H1 : c pc = false) (H2 : PiRelation am2 c p) : PiRelation (Choice pc am1 am2) c p.
 
-Inductive SigmaRelation {Proper PC : Type} `{Property Proper} `{PresenceCondition PC} : AnnotativeExpression -> (PC -> bool) -> Proper -> Prop :=
-  | BaseCaseSig (p : Proper) (c:  PC -> bool) : SigmaRelation (Base Proper PC p) c p
-  | Choice1Sig (ae1 ae2 : AnnotativeExpression) (p : Proper) (pc : PC) (c : PC -> bool) 
-      (H1 : c pc = true) (H2 : SigmaRelation ae1 c p) : SigmaRelation (Choice Proper PC pc ae1 ae2) c p
-  | Choice2Sig (ae1 ae2 : AnnotativeExpression) (p : Proper) (pc : PC) (c : PC -> bool) 
-      (H1 : c pc = false) (H2 : SigmaRelation ae2 c p) : SigmaRelation (Choice Proper PC pc ae1 ae2) c p.
+Inductive SigmaRelation `{Property Proper} `{PresenceCondition PC} : AnnotativeExpression -> 
+  conf -> Proper -> Prop :=
+  | BaseCaseSig (p : Proper) (c:  conf) : SigmaRelation (Base p) c p
+  | Choice1Sig (ae1 ae2 : AnnotativeExpression) (p : Proper) (pc : PC) (c : conf) 
+      (H1 : c pc = true) (H2 : SigmaRelation ae1 c p) : SigmaRelation (Choice pc ae1 ae2) c p
+  | Choice2Sig (ae1 ae2 : AnnotativeExpression) (p : Proper) (pc : PC) (c : conf) 
+      (H1 : c pc = false) (H2 : SigmaRelation ae2 c p) : SigmaRelation (Choice pc ae1 ae2) c p.
 
-Inductive HatAlphaRelation {Prod Proper PC : Type} {Hp : Property Proper} `{@Product Prod Proper Hp} `{PresenceCondition PC} : AnnotativeModel -> AnnotativeExpression -> Prop :=
+Inductive HatAlphaRelation {Hp : Property Proper} `{@Product Prod Proper Hp} `{PresenceCondition PC} : 
+  AnnotativeModel -> AnnotativeExpression -> Prop :=
   | BaseCase (prod : Prod) (proper : Proper) (H : alpha prod = proper) : 
-      HatAlphaRelation (Base Prod PC prod) (Base Proper PC proper)
+      HatAlphaRelation (Base prod) (Base proper)
   | ChoiceCase (am1 am2 : AnnotativeModel) (ae1 ae2 : AnnotativeExpression) (pc : PC) 
       (H1: HatAlphaRelation am1 ae1) (H2: HatAlphaRelation am2 ae2) : 
-      HatAlphaRelation (Choice Prod PC pc am1 am2) (Choice Proper PC pc ae1 ae2).
+      HatAlphaRelation (Choice pc am1 am2) (Choice pc ae1 ae2).
 
-Theorem commutative_product_family_product {Prod Proper PC : Type} `{Hp : Property Proper}
-  `{@Product Prod Proper Hp} `{PresenceCondition PC} : forall (am : AnnotativeModel) 
-  (ae : AnnotativeExpression)(c : PC -> bool) (prod : Prod) (proper : Proper), 
+Theorem commutative_product_family_product `{Hp : Property Proper} `{@Product Prod Proper Hp} 
+  `{PresenceCondition PC} : forall (am : AnnotativeModel) 
+  (ae : AnnotativeExpression)(c : conf) (prod : Prod) (proper : Proper), 
   HatAlphaRelation am ae -> PiRelation am c prod -> alpha prod = proper -> SigmaRelation ae c proper.
 Proof.
   intros. induction H1.
@@ -80,64 +78,63 @@ Proof.
     + subst. apply Choice2Sig. auto. apply IHHatAlphaRelation2. apply H9.
 Qed.
 
-Record CompositionalThing {X PC : Type} `{PresenceCondition PC}: Type := Composition
-{ E : nat -> X
-; top : nat
-; dependents : nat -> list (PC * nat)
-}.
+Definition CompositionalModel `{Product Prod} `{PresenceCondition PC} : Type := 
+  @CompositionalThing PC (AnnotativeModel).
 
-Definition CompositionalModel {X Y: Type} `{Product X} {H : PresenceCondition Y} : Type := 
-  @CompositionalThing (AnnotativeModel) Y H.
+Definition CompositionalExpression `{Property Proper} `{PresenceCondition PC}: Type :=
+  @CompositionalThing PC (AnnotativeExpression).
 
-Definition CompositionalExpression {X Y: Type} `{Property X} {H : PresenceCondition Y}: Type :=
-  @CompositionalThing (AnnotativeExpression) Y H.
+Definition partialMCT `{Product Prod} `{PresenceCondition PC} : Type := AnnotativeModel -> AnnotativeModel -> AnnotativeModel. (* Partial Model Composition Type*)
+Definition partialECT `{Property Proper} `{PresenceCondition PC} : Type := AnnotativeExpression -> AnnotativeExpression -> AnnotativeExpression. (* Partial Expression Composition Type*)
+Definition partialADDCT `{Property Proper} `{PresenceCondition PC} : Type := (ADD Proper) -> (ADD Proper) -> (ADD Proper). (*Partial ADD Composition Type*)
 
-Definition partialMCT {Prod PC : Type} `{Product Prod} `{PresenceCondition PC} : Type := AnnotativeModel -> AnnotativeModel -> AnnotativeModel. (* Partial Model Composition Type*)
-Definition partialECT {Proper PC : Type} `{Property Proper} `{PresenceCondition PC} : Type := AnnotativeExpression -> AnnotativeExpression -> AnnotativeExpression. (* Partial Expression Composition Type*)
-Definition partialADDCT {Proper PC : Type} `{Property Proper} `{PresenceCondition PC} : Type := (ADD Proper) -> (ADD Proper) -> (ADD Proper). (*Partial ADD Composition Type*)
 
-Inductive HatAlphaCompRelation {Prod Proper PC : Type} {Hp : Property Proper} `{@Product Prod Proper Hp} `{PresenceCondition PC} : CompositionalModel -> CompositionalExpression -> Prop :=
+Inductive HatAlphaCompRelation {Hp : Property Proper} `{@Product Prod Proper Hp} `{PresenceCondition PC} :
+  CompositionalModel -> CompositionalExpression -> Prop :=
   | FMapHa (cm : CompositionalModel) (ce : CompositionalExpression) (H1 : cm.(top) = ce.(top))
-      (H2 : forall (n : nat), HatAlphaRelation (cm.(E) n) (ce.(E) n)) (H3 : cm.(dependents) = ce.(dependents)) :
-      HatAlphaCompRelation cm ce.
+    (H2 : forall (n : nat), HatAlphaRelation (cm.(E) n) (ce.(E) n)) (H3 : cm.(dependents) = ce.(dependents)) :
+    HatAlphaCompRelation cm ce.
 
-Inductive PiCompRelation_aux {Prod PC : Type} `{Product Prod} `{PresenceCondition PC} : CompositionalModel -> AnnotativeModel -> list (PC * nat) -> (PC -> bool) -> partialMCT -> Prod -> Prop :=
-  | NilListPi (cm : CompositionalModel) (am : AnnotativeModel) (c : PC -> bool) (prod : Prod)
+Inductive PiCompRelation_aux `{Product Prod} `{PresenceCondition PC} 
+  : CompositionalModel -> AnnotativeModel -> list (PC * nat) -> conf -> partialMCT -> Prod -> Prop :=
+  | NilListPi (cm : CompositionalModel) (am : AnnotativeModel) (c : conf) (prod : Prod)
       (partialMC : partialMCT) (H1 : PiRelation am c prod) : 
       PiCompRelation_aux cm am nil c partialMC prod
-  | TruePCCasePi (cm : CompositionalModel) (am : AnnotativeModel) (t : list (PC * nat)) (c : PC -> bool) (prod1 prod2 : Prod)
+  | TruePCCasePi (cm : CompositionalModel) (am : AnnotativeModel) (t : list (PC * nat)) (c : conf) (prod1 prod2 : Prod)
       (h : (PC * nat)) (partialMC : partialMCT) (H1 : c (fst h) = true)
       (H2 : PiCompRelation_aux cm (cm.(E) (snd h)) (cm.(dependents) (snd h)) c partialMC prod2)
-      (H3 : PiCompRelation_aux cm (partialMC am (Base Prod PC prod2)) t c partialMC prod1) :
+      (H3 : PiCompRelation_aux cm (partialMC am (Base prod2)) t c partialMC prod1) :
       PiCompRelation_aux cm am (h :: t) c partialMC prod1
-  | FalsePCCasePi (cm : CompositionalModel) (am : AnnotativeModel) (t : list (PC * nat)) (c : PC -> bool) (prod : Prod)
+  | FalsePCCasePi (cm : CompositionalModel) (am : AnnotativeModel) (t : list (PC * nat)) (c : conf) (prod : Prod)
       (h : (PC * nat)) (partialMC : partialMCT) (H1 : c (fst h) = false)
-      (H2 : PiCompRelation_aux cm (partialMC am (Base Prod PC emptyProduct)) t c partialMC prod) : 
+      (H2 : PiCompRelation_aux cm (partialMC am (Base emptyProduct)) t c partialMC prod) : 
        PiCompRelation_aux cm am (h :: t) c partialMC prod.
       
-Inductive SigmaCompRelation_aux {Proper PC : Type} `{Property Proper} `{PresenceCondition PC} : CompositionalExpression -> AnnotativeExpression -> list (PC * nat) -> (PC -> bool) -> partialECT -> Proper -> Prop :=
-  | NilListSig (ce : CompositionalExpression) (ae : AnnotativeExpression) (c : PC -> bool) (proper : Proper)
+Inductive SigmaCompRelation_aux `{Property Proper} `{PresenceCondition PC} : 
+  CompositionalExpression -> AnnotativeExpression -> list (PC * nat) -> conf -> partialECT -> Proper -> Prop :=
+  | NilListSig (ce : CompositionalExpression) (ae : AnnotativeExpression) (c : conf) (proper : Proper)
       (partialEC : partialECT) (H1 : SigmaRelation ae c proper) : 
       SigmaCompRelation_aux ce ae nil c partialEC proper
-  | TruePCCaseSig (ce : CompositionalExpression) (ae : AnnotativeExpression) (t : list (PC * nat)) (c : PC -> bool) (proper1 proper2 : Proper)
+  | TruePCCaseSig (ce : CompositionalExpression) (ae : AnnotativeExpression) (t : list (PC * nat)) (c : conf) (proper1 proper2 : Proper)
       (h : (PC * nat)) (partialEC : partialECT) (H1 : c (fst h) = true)
       (H2 : SigmaCompRelation_aux ce (ce.(E) (snd h)) (ce.(dependents) (snd h)) c partialEC proper2)
-      (H3 : SigmaCompRelation_aux ce (partialEC ae (Base Proper PC proper2)) t c partialEC proper1) :
+      (H3 : SigmaCompRelation_aux ce (partialEC ae (Base proper2)) t c partialEC proper1) :
       SigmaCompRelation_aux ce ae (h :: t) c partialEC proper1
-  | FalsePCCaseSig (ce : CompositionalExpression) (ae : AnnotativeExpression) (t : list (PC * nat)) (c : PC -> bool) (proper : Proper)
+  | FalsePCCaseSig (ce : CompositionalExpression) (ae : AnnotativeExpression) (t : list (PC * nat)) (c : conf) (proper : Proper)
       (h : (PC * nat)) (partialEC : partialECT) (H1 : c (fst h) = false)
-      (H2 : SigmaCompRelation_aux ce (partialEC ae (Base Proper PC emptyProperty)) t c partialEC proper) : 
+      (H2 : SigmaCompRelation_aux ce (partialEC ae (Base emptyProperty)) t c partialEC proper) : 
        SigmaCompRelation_aux ce ae (h :: t) c partialEC proper.
 
-Definition PiCompRelation {Prod PC : Type} `{Product Prod} `{PresenceCondition PC} (cm : CompositionalModel) (c : PC -> bool) (p : Prod) (partialMC : partialMCT) : Prop :=
+Definition PiCompRelation `{Product Prod} `{PresenceCondition PC} 
+  (cm : CompositionalModel) (c : conf) (p : Prod) (partialMC : partialMCT) : Prop :=
   PiCompRelation_aux cm (cm.(E) cm.(top)) (cm.(dependents) cm.(top)) c partialMC p.
 
-Definition SigmaCompRelation {Proper PC : Type} `{Property Proper} `{PresenceCondition PC} (ce : CompositionalExpression) (c : PC -> bool) (p: Proper) (partialEC : partialECT) : Prop :=
+Definition SigmaCompRelation `{Property Proper} `{PresenceCondition PC} (ce : CompositionalExpression) (c : conf) (p: Proper) (partialEC : partialECT) : Prop :=
   SigmaCompRelation_aux ce (ce.(E) ce.(top)) (ce.(dependents) ce.(top)) c partialEC p.
 
-Theorem aux_commutative_feature_product_product {Prod Proper PC : Type} {Hp : Property Proper}
+Theorem aux_commutative_feature_product_product {Hp : Property Proper}
   `{@Product Prod Proper Hp} `{PresenceCondition PC} : forall (l : list (PC * nat)) (cm : CompositionalModel) 
-  (ce : CompositionalExpression) (c : PC -> bool) (prod : Prod) (proper : Proper) (ae : AnnotativeExpression)
+  (ce : CompositionalExpression) (c : conf) (prod : Prod) (proper : Proper) (ae : AnnotativeExpression)
   (partialMC : partialMCT) (am : AnnotativeModel) (partialEC : partialECT),
   ( forall (am1 am2 : AnnotativeModel) (ae1 ae2 : AnnotativeExpression),
     HatAlphaRelation am1 ae1 -> HatAlphaRelation am2 ae2 -> HatAlphaRelation (partialMC am1 am2) (partialEC ae1 ae2)) ->
@@ -156,9 +153,9 @@ Proof.
     + apply H1. auto. constructor. apply (AlphaEmpty Prod Proper).
 Qed.
 
-Theorem commutative_feature_product_product {Prod Proper PC : Type} {Hp : Property Proper}
+Theorem commutative_feature_product_product {Hp : Property Proper}
   `{@Product Prod Proper Hp} `{PresenceCondition PC} : forall (cm : CompositionalModel) 
-  (ce : CompositionalExpression) (c : PC -> bool) (prod : Prod) (proper : Proper)
+  (ce : CompositionalExpression) (c : conf) (prod : Prod) (proper : Proper)
   (partialMC : partialMCT) (partialEC : partialECT),
   ( forall (am1 am2 : AnnotativeModel) (ae1 ae2 : AnnotativeExpression),
     HatAlphaRelation am1 ae1 -> HatAlphaRelation am2 ae2 -> HatAlphaRelation (partialMC am1 am2) (partialEC ae1 ae2)) ->
@@ -171,14 +168,14 @@ Proof.
   - inversion H2. rewrite <- H5. apply H6.
 Qed.
 
-Fixpoint HatSigma {Proper PC : Type} `{Property Proper} `{PresenceCondition PC} (ae : AnnotativeExpression) : ADD Proper :=
+Fixpoint HatSigma `{Property Proper} `{PresenceCondition PC} (ae : AnnotativeExpression) : ADD Proper :=
   match ae with
-  | Base _ _ proper => constant proper
-  | Choice _ _ pc ae1 ae2 => ite (pcToADD pc) (HatSigma ae1) (HatSigma ae2)
+  | Base proper => constant proper
+  | Choice pc ae1 ae2 => ite (pcToADD pc) (HatSigma ae1) (HatSigma ae2)
   end.
 
-Theorem commutative_family_product_family {Proper PC : Type} `{Property Proper} `{PresenceCondition PC} :
-  forall (ae : AnnotativeExpression) (c : PC -> bool), SigmaRelation ae c ((HatSigma ae) (confToVariable c)).
+Theorem commutative_family_product_family `{Property Proper} `{PresenceCondition PC} :
+  forall (ae : AnnotativeExpression) (c : conf), SigmaRelation ae c ((HatSigma ae) (confToVariable c)).
 Proof.
   intros ae. induction ae.
   - intros. unfold HatSigma. unfold constant. constructor.
@@ -195,7 +192,8 @@ Fixpoint zip {X Y : Type} (lx : list X) (ly : list Y) : list (X * Y) :=
   | _, _ => nil
   end.
 
-Inductive HatSigmaCompRelation {Proper PC : Type} `{Property Proper} `{PresenceCondition PC} : CompositionalExpression -> nat -> partialADDCT -> (ADD Proper) -> Prop :=
+Inductive HatSigmaCompRelation `{Property Proper} `{PresenceCondition PC} : CompositionalExpression -> 
+  nat -> partialADDCT -> (ADD Proper) -> Prop :=
   | NotDependents (ce : CompositionalExpression) (n : nat) (partialADDC : partialADDCT)
       (H1 : ce.(dependents) n = nil) : HatSigmaCompRelation ce n partialADDC (HatSigma (ce.(E) n))
   | HaveDependents (ce : CompositionalExpression) (n : nat) (partialADDC : partialADDCT) 
@@ -219,8 +217,8 @@ Proof.
     rewrite H3. reflexivity. inversion H0. reflexivity.
 Qed.
 
-Theorem SigmaProperEquivalence: forall {Proper PC : Type} `{Property Proper} `{PresenceCondition PC},
-  forall (ae : AnnotativeExpression) (c : PC -> bool) (p1 p2 : Proper),
+Theorem SigmaProperEquivalence: forall `{Property Proper} `{PresenceCondition PC},
+  forall (ae : AnnotativeExpression) (c : conf) (p1 p2 : Proper),
   (SigmaRelation ae c p1 /\ SigmaRelation ae c p2) -> p1 = p2.
 Proof.
   intros. destruct H1. induction ae.
@@ -232,20 +230,11 @@ Proof.
     + apply IHae2. auto. auto.
 Qed.
 (* Acredito que seja possível provar, mas até o momento não consegui*)
-Axiom SigmaCompProperEquivalence: forall {Proper PC : Type} `{Property Proper} `{PresenceCondition PC},
+Axiom SigmaCompProperEquivalence: forall `{Property Proper} `{PresenceCondition PC},
   forall (l : list (PC * nat)) (ce : CompositionalExpression) (ae : AnnotativeExpression) 
   (c : PC -> bool) (partialEC : partialECT) (p1 p2 : Proper),
   (SigmaCompRelation_aux ce ae l c partialEC p1 /\
   SigmaCompRelation_aux ce ae l c partialEC p2) -> p1 = p2.
-(* Parte da prova do Teorema acima *)
-(*Proof.
-  intros l. induction l;intros;destruct H1.
-  - inversion H1. inversion H2. apply (SigmaProperEquivalence ae c).
-    split;auto.
-  - inversion H1;inversion H2.
-    + assert(E : proper2 = proper3).
-      * apply (IHl ce (E ce (snd a)) c partialEC).
-        split;auto.*)
 
 Theorem mapComposition : forall (X Y Z : Type) (l : list X) (f : Y -> Z) (g : X -> Y),
   map f (map g l) = map (compose f g) l.
@@ -271,8 +260,8 @@ Proof.
     + intros. apply H1. right. auto.
 Qed.
 
-Theorem foldlce {Proper PC : Type} `{Property Proper} `{PresenceCondition PC}:
-  forall (ce : CompositionalExpression) (n : nat) (c : PC -> bool) (partialEC : partialECT)
+Theorem foldlce `{Property Proper} `{PresenceCondition PC}:
+  forall (ce : CompositionalExpression) (n : nat) (c : conf) (partialEC : partialECT)
     (partialADDC : partialADDCT) (ladd : list (ADD Proper)) (ae : AnnotativeExpression)
     (lzip : list ((ADD Proper) * (PC * nat))) (add : ADD Proper) , lzip = zip ladd (dependents ce n) ->
     length ladd = length (dependents ce n) -> (forall x : ADD Proper * (PC * nat), In x lzip ->
@@ -284,7 +273,7 @@ Theorem foldlce {Proper PC : Type} `{Property Proper} `{PresenceCondition PC}:
     partialEC ((fold_left partialADDC ladd add)
     (confToVariable c)) <-> SigmaCompRelation_aux ce 
     (fold_left partialEC (map (fun (x : (ADD Proper) * (PC * nat)) => 
-    if (c (fst (snd x))) then (Base Proper PC ((fst x) (confToVariable c))) else (Base Proper PC emptyProperty))
+    if (c (fst (snd x))) then (Base ((fst x) (confToVariable c))) else (Base emptyProperty))
     lzip) ae) nil c partialEC (fold_left partialADDC ladd add
     (confToVariable c))).
 Proof.
@@ -302,7 +291,7 @@ Proof.
         (E ce (snd a)) c partialEC). split;auto. rewrite <- H''.
         destruct lzip. discriminate H1. inversion H1. rewrite <- H18.
         apply (IHl c partialEC partialADDC _
-        (partialEC ae (Base Proper PC proper2)) _
+        (partialEC ae (Base proper2)) _
         (partialADDC add a0)) in H18.
         { destruct H18. apply H16. auto. }
         { simpl in H2. inversion H2. reflexivity. }
@@ -311,7 +300,7 @@ Proof.
       * simpl in H1. rewrite H1. simpl. rewrite H10. destruct lzip.
         discriminate H1. inversion H1. rewrite <- H17.
         apply (IHl c partialEC partialADDC _ 
-        (partialEC ae (Base Proper PC emptyProperty)) _
+        (partialEC ae (Base emptyProperty)) _
         (partialADDC add a0))in H17.
         { apply H17. auto. }
         { inversion H2. reflexivity. }
@@ -324,7 +313,7 @@ Proof.
         { assert (H'': In p (p::lzip)). left. reflexivity.
           apply H4 in H''. rewrite H7 in H''. simpl in H''. auto. }
         { apply (IHl c partialEC partialADDC _ 
-          (partialEC ae (Base Proper PC (a0 (confToVariable c))))
+          (partialEC ae (Base (a0 (confToVariable c))))
           _ (partialADDC add a0)) in H8.
           { apply H8. auto. }
           { inversion H2. reflexivity. }
@@ -332,7 +321,7 @@ Proof.
           { intros. apply H4. right. auto. } }
       * apply FalsePCCaseSig. auto. apply 
         (IHl c partialEC partialADDC _ 
-        (partialEC ae (Base Proper PC emptyProperty))
+        (partialEC ae (Base emptyProperty))
         _ (partialADDC add a0)) in H8.
         { apply H8. auto. }
         { inversion H2. reflexivity. }
@@ -340,8 +329,8 @@ Proof.
         { intros. apply H4. right. auto. }
 Qed.
 
-Theorem commutative_feature_family_feature_produc {Proper PC : Type} `{Property Proper} `{PresenceCondition PC} :
-  forall (ce : CompositionalExpression) (c : PC -> bool) (partialEC : partialECT) 
+Theorem commutative_feature_family_feature_produc `{Property Proper} `{PresenceCondition PC} :
+  forall (ce : CompositionalExpression) (c : conf) (partialEC : partialECT) 
     (partialADDC : partialADDCT) (add : ADD Proper), 
     (forall (ae : AnnotativeExpression) (l : list AnnotativeExpression),
     fold_left partialADDC (map HatSigma l) (HatSigma ae) = 
@@ -365,21 +354,21 @@ Proof.
     partialEC ((fold_left partialADDC ladd (HatSigma (E ce n)))
     (confToVariable c)) <-> SigmaCompRelation_aux ce 
     (fold_left partialEC (map (fun (x : (ADD Proper) * (PC * nat)) => 
-    if (c (fst (snd x))) then (Base Proper PC ((fst x) (confToVariable c))) 
-    else (Base Proper PC emptyProperty)) lzip) (E ce n)) nil c partialEC 
+    if (c (fst (snd x))) then (Base ((fst x) (confToVariable c))) 
+    else (Base emptyProperty)) lzip) (E ce n)) nil c partialEC 
     (fold_left partialADDC ladd (HatSigma (E ce n)) (confToVariable c)))).
     apply foldlce;auto. apply H'. constructor. assert (H'': SigmaRelation
     (fold_left partialEC (map (fun x : ADD Proper * (PC * nat) =>
-    if c (fst (snd x)) then Base Proper PC (fst x (confToVariable c))
-    else Base Proper PC emptyProperty) lzip) (E ce n)) c ((HatSigma
+    if c (fst (snd x)) then Base (fst x (confToVariable c))
+    else Base emptyProperty) lzip) (E ce n)) c ((HatSigma
     (fold_left partialEC (map (fun x : ADD Proper * (PC * nat) =>
-    if c (fst (snd x)) then Base Proper PC (fst x (confToVariable c))
-    else Base Proper PC emptyProperty) lzip) (E ce n))) (confToVariable c))).
+    if c (fst (snd x)) then Base (fst x (confToVariable c))
+    else Base emptyProperty) lzip) (E ce n))) (confToVariable c))).
     apply commutative_family_product_family. assert (H''' : (fold_left 
     partialADDC ladd (HatSigma (E ce n))) (confToVariable c) =  HatSigma 
     (fold_left partialEC
-    (map (fun x : ADD Proper * (PC * nat) => if c (fst (snd x)) then Base 
-    Proper PC (fst x (confToVariable c)) else Base Proper PC emptyProperty) lzip) 
+    (map (fun x : ADD Proper * (PC * nat) => if c (fst (snd x)) then Base
+     (fst x (confToVariable c)) else Base emptyProperty) lzip) 
     (E ce n)) (confToVariable c)).
     + rewrite <- H1. rewrite mapComposition. unfold compose. apply H3.
       split. reflexivity. rewrite mapComposition. unfold compose.
@@ -392,9 +381,9 @@ Proof.
     + rewrite H'''. auto.
 Qed.
 
-Theorem commutative_feature_family_product {Prod Proper PC : Type} {Hp : Property Proper}
+Theorem commutative_feature_family_product {Hp : Property Proper}
   `{@Product Prod Proper Hp} `{PresenceCondition PC} : forall (cm : CompositionalModel) 
-  (ce : CompositionalExpression) (c : PC -> bool) (prod : Prod) (proper : Proper)
+  (ce : CompositionalExpression) (c : conf) (prod : Prod) (proper : Proper)
   (add : ADD Proper) (partialMC : partialMCT) (partialEC : partialECT) 
   (partialADDC : partialADDCT), ( forall (am1 am2 : AnnotativeModel) 
   (ae1 ae2 : AnnotativeExpression), HatAlphaRelation am1 ae1 -> HatAlphaRelation am2 ae2 
