@@ -3,7 +3,6 @@ Require Import Coq.Program.Basics.
 Require Import Coq.Init.Wf.
 Require Import Coq.Program.Equality.
 Require Import Floats.
-Require Import List.
 
 Load compositionalThing.
 
