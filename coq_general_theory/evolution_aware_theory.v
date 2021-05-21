@@ -1,5 +1,6 @@
 Require Import Floats.
 Require Import FSets.
+Require Import Lists.List.
 
 Load add.
 Load zip.
@@ -22,10 +23,13 @@ Class Model (model : Type) {rdg : Type} `{RDG rdg} : Type :=
   deps : model -> list model;
   evolutionModel : model -> (model -> Evolution) -> model;
   phi : model -> ADD float;
-  phiInd' : rdg -> list (ADD float) -> ADD float
+  phiInd' : rdg -> list (ADD float) -> ADD float;
+  AddedModels : model -> (model -> Evolution) -> model;
+  RemovedModels : model -> (model -> Evolution) -> model
 }.
 
-
+Hypothesis eq_dec : forall (model rdg : Type) `{Model model} `{RDG rdg}, 
+  forall x y : model, {x = y}+{x <> y}.
 
 Inductive phi'Rel {model rdg : Type} `{Model model} `{RDG rdg} :  model ->
 (model -> Evolution) -> (ADD float) -> Prop :=
@@ -45,6 +49,21 @@ Inductive phi'Rel {model rdg : Type} `{Model model} `{RDG rdg} :  model ->
     phi'Rel (snd x) delta (fst x)) : 
     phi'Rel m delta (phiInd' (buildRDG (evolutionModel m delta))
     phi'deps)
+  | AddFeatureCase (m : model) (delta : model -> Evolution)
+    (phi'deps : list (ADD float)) (H1 : delta m = AddFeature)
+    (H2 : length phi'deps = length ((AddedModels m delta) :: (deps m)))
+    (H3 : forall x : (ADD float) * model, 
+    In x (zip phi'deps ((AddedModels m delta) :: (deps m))) ->
+    phi'Rel (snd x) delta (fst x)) : phi'Rel m delta
+    (phiInd' (buildRDG (evolutionModel m delta)) phi'deps)
+  | RemoveFeatureCase (m : model) (delta : model -> Evolution) 
+    (phi'deps : list (ADD float)) (H1 : delta m = RemoveFeature)
+    (H2 : length phi'deps = length (deps m) - 1) 
+    (H3 : forall x : (ADD float) * model, 
+    In x (zip phi'deps 
+    (remove (eq_dec model rdg) (RemovedModels m delta) (deps m))) ->
+    phi'Rel (snd x) delta (fst x)) : phi'Rel m delta
+    (phiInd' (buildRDG (evolutionModel m delta)) phi'deps)
   | SubsequentCase (m : model) (delta : model -> Evolution)
     (phi'deps : list (ADD float)) (H1 : delta m = SubsequentModelEvol) 
     (H2 : length phi'deps = length (deps m))
@@ -52,23 +71,20 @@ Inductive phi'Rel {model rdg : Type} `{Model model} `{RDG rdg} :  model ->
     phi'Rel (snd x) delta (fst x)) :
     phi'Rel m delta (phiInd' (buildRDG m) phi'deps).
 
-(*Fixpoint phi'Fun {model rdg : Type} `{Model model} `{RDG rdg} (m' : ModelInd)
-(delta : model -> Evolution) : (ADD float) :=
-  match m' with
-  | Mod m => match delta m with
-                           | ID => phi m
-                           | Mensage => phiInd' (buildRDG m) (map (fun (x : model) => 
-                             phi'Fun (Mod x) delta) (deps m))
-                           | _ => constant 1%float
-                           end
-  end. *)
 
 Theorem evolutionAnalisysEquivalenceIDCase {model rdg : Type} `{Model model} `{RDG rdg} :
   forall (m : model) (delta : model -> Evolution), delta m = ID \/
-  deps (buildRDG m) = nil -> phi'Rel m delta (phi m).
+  deps m = nil -> phi'Rel m delta (phi m).
 Proof.
   intros. constructor. auto.
 Qed.
+
+(*Theorem evolutionAnalisysEquivalenceMensageCase {model rdg : Type} 
+`{Model model} `{RDG rdg} : forall (m : model) (delta : model -> Evolution),
+ delta m = Mensage -> phi'Rel m delta (phiInd' (buildRDG (evolutionModel m delta))
+ phi'deps).*)
+
+
 
 
 
