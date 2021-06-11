@@ -18,8 +18,8 @@ Inductive Evolution : Type :=
   | Message
   | PC
   | AddFeature
-  | RemoveFeature
-  | SubsequentModelEvol.
+  | SubsequentModelEvol
+  | RemoveFeature.
 
 Class Model (model : Type) {asset : Type} `{Asset asset} : Type :=
 {
@@ -103,6 +103,12 @@ Axiom phiInd'Equivalence : forall (model asset: Type) `{Asset asset} `{Model mod
   forall (rdg : RDG),
   phiInd' rdg (map phi (deps rdg)) = phi rdg.
 
+Axiom depsAddEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
+  forall (rdg : RDG) (delta : RDG -> Evolution), delta rdg = AddFeature -> 
+  exists (r : RDG) (lr : list RDG), deps (evolutionRDG rdg delta) = r :: lr /\
+  r = AddedRDG rdg delta /\
+  lr = map (fun r : RDG => evolutionRDG r delta) (deps rdg).
+
 Axiom phiInd'IDEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
   forall (rdg : RDG) (delta : RDG -> Evolution), delta rdg = ID ->
   evolutionRDG rdg delta = rdg.
@@ -125,6 +131,16 @@ Theorem well_founded_phi_equivalence {model asset :Type}
   forall r : RDG, (fun r : RDG => Phi'Aux r delta = phi (evolutionRDG r delta)) r.
 Proof.
   intros delta. apply well_founded_ind. apply well_founded_In_rdg.
+Qed.
+
+Theorem map_phi_evolution_theorem {model asset :Type} 
+  `{Asset asset} `{Model model} : forall (delta : RDG -> Evolution)
+  (l : list RDG), map phi (map (fun r : RDG => evolutionRDG r delta) l) = 
+  map (fun r : RDG => phi (evolutionRDG r delta)) l.
+Proof. 
+  intros. induction l.
+  - reflexivity.
+  - simpl. rewrite IHl. reflexivity.
 Qed.
 
 Theorem Phi'EquivalenceAux {model asset :Type} `{Asset asset} `{Model model} :
@@ -150,7 +166,32 @@ Proof.
     intros H''';discriminate H'''. }
     rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
     apply H2.
-  -
+  - simpl. rewrite D. rewrite <- (phiInd'Equivalence _ asset).
+    assert (H' : (map (fun x : RDG => Phi'Aux x delta) deps0) =
+    (map phi (deps (evolutionRDG (RDG_cons ass deps0) delta))) ->
+    phiInd' (evolutionRDG (RDG_cons ass deps0) delta)
+    (map (fun x : RDG => Phi'Aux x delta) deps0) =
+    phiInd' (evolutionRDG (RDG_cons ass deps0) delta)
+    (map phi (deps (evolutionRDG (RDG_cons ass deps0) delta)))).
+    intros. rewrite H3. reflexivity. apply H'.
+    assert (H'' : map (fun r : RDG => phi (evolutionRDG r delta)) 
+    (deps (RDG_cons ass deps0)) = map phi 
+    (deps (evolutionRDG (RDG_cons ass deps0) delta))).
+    { apply (isomorphismPhiEvolution _ asset). rewrite D. split;
+    intros H''';discriminate H'''. }
+    rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
+    apply H2.
+  - simpl. rewrite D. rewrite <- (phiInd'Equivalence _ asset
+    (evolutionRDG (RDG_cons ass deps0) delta)). assert (H' :
+    forall (r : RDG) (l1 l2 : list (ADD float)), l1 = l2 ->
+    phiInd' r l1 = phiInd' r l2). intros. rewrite H3. reflexivity.
+    apply H'. apply (depsAddEvolution model asset) in D.
+    destruct D. destruct H3. destruct H3. destruct H4. rewrite H3. simpl.
+    rewrite H4. assert (H'' : forall (l1 l2 : list (ADD float)) (r : ADD float),
+    l1 = l2 -> r::l1 = r::l2). intros. rewrite H6. reflexivity.
+    apply H''. rewrite H5. simpl. rewrite map_phi_evolution_theorem.
+    apply In_map_theorem. apply H2.
+  - simpl. rewrite D. rewrite <- (phiInd'Equivalence _ asset).
 
 Theorem Phi'Equivalence {model asset :Type} `{Asset asset} `{Model model} :
   forall (m : model) (delta : RDG -> Evolution), 
