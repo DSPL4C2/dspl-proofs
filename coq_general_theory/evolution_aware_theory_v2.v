@@ -4,7 +4,7 @@ Require Import Lists.List.
 
 Load add.
 Load zip.
-Load all.
+Load aux_theorems.
 
 Class Asset (asset : Type) : Type :=
 {}.
@@ -28,7 +28,7 @@ Class Model (model : Type) {asset : Type} `{Asset asset} : Type :=
   phi : RDG -> ADD float;
   phiInd' : RDG -> list (ADD float) -> ADD float;
   AddedRDG : RDG -> (RDG -> Evolution) -> RDG;
-  RemoveADDdeps : RDG -> (RDG -> Evolution) -> list (ADD float) -> list (ADD float);
+  ADDdepsRmvCase : RDG -> (RDG -> Evolution) -> list (ADD float) -> list (ADD float);
 }.
 
 Definition deps {asset : Type} `{Asset asset} (rdg : RDG) : list RDG :=
@@ -57,7 +57,7 @@ Fixpoint Phi'Aux {model asset :Type} {H1 : Asset asset} {H2 : Model model}
                          ajustar a função RemoveADDdeps para mudar a lista de ADDs,
                          e não a lista de RDG*)
                        | RemoveFeature => phiInd' (evolutionRDG rdg delta)
-                          (RemoveADDdeps rdg delta 
+                          (ADDdepsRmvCase rdg delta 
                           (map (fun (x : RDG) => Phi'Aux (x) delta) deps))
                        end
   end.
@@ -109,15 +109,45 @@ Axiom depsAddEvolution : forall (model asset: Type) `{Asset asset} `{Model model
   r = AddedRDG rdg delta /\
   lr = map (fun r : RDG => evolutionRDG r delta) (deps rdg).
 
+Axiom subsequentModelAxiom : forall (model asset: Type) `{Asset asset} 
+  `{Model model}, forall (r : RDG) (delta : RDG -> Evolution)
+  (l : list (ADD float)), delta r = SubsequentModelEvol -> 
+  phiInd' r l = phiInd' (evolutionRDG r delta) l.
+
+(*Procurar redução para esse axioma*)
+
+Axiom RemoveFeatureAxiom : forall (model asset: Type) `{Asset asset} 
+  `{Model model}, forall (r : RDG) (delta : RDG -> Evolution),
+  delta r = RemoveFeature -> 
+  ADDdepsRmvCase r delta (map (fun rdg : RDG => phi (evolutionRDG rdg delta))
+  (deps r)) = map phi (deps (evolutionRDG r delta)).
+
 Axiom phiInd'IDEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
   forall (rdg : RDG) (delta : RDG -> Evolution), delta rdg = ID ->
   evolutionRDG rdg delta = rdg.
 
-Axiom isomorphismPhiEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
+(*Definir Exemplo e tentar reduzir*)
+
+Axiom commutativeDepsEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
   forall (rdg : RDG) (delta : RDG -> Evolution) , delta rdg <> AddFeature /\
-  delta rdg <> RemoveFeature -> 
+  delta rdg <> RemoveFeature -> deps (evolutionRDG rdg delta) =
+  map (fun r : RDG => evolutionRDG r delta) (deps rdg).
+
+Theorem commutativePhiEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
+  forall (rdg : RDG) (delta : RDG -> Evolution) , delta rdg <> AddFeature /\
+  delta rdg <> RemoveFeature ->
    map (fun r : RDG => phi (evolutionRDG r delta)) (deps rdg) = 
    map phi (deps (evolutionRDG rdg delta)).
+Proof.
+  intros. assert (H' : forall (l : list RDG) (d : RDG -> Evolution),
+  map (fun r : RDG => phi (evolutionRDG r d)) l = map phi (map 
+  (fun r : RDG => evolutionRDG r d) l)).
+  { induction l.
+    - intros. reflexivity.
+    - intros. simpl. rewrite IHl. reflexivity. }
+  rewrite H'. apply (commutativeDepsEvolution model asset) in H2.
+  rewrite H2. reflexivity.
+Qed.
 
 Axiom well_founded_In_rdg : forall (asset : Type) `{Asset asset},
   well_founded (fun r1 r2 : RDG => In r1 (deps r2)).
@@ -162,7 +192,7 @@ Proof.
     assert (H'' : map (fun r : RDG => phi (evolutionRDG r delta)) 
     (deps (RDG_cons ass deps0)) = map phi 
     (deps (evolutionRDG (RDG_cons ass deps0) delta))).
-    { apply (isomorphismPhiEvolution _ asset). rewrite D. split;
+    { apply (commutativePhiEvolution _ asset). rewrite D. split;
     intros H''';discriminate H'''. }
     rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
     apply H2.
@@ -177,7 +207,7 @@ Proof.
     assert (H'' : map (fun r : RDG => phi (evolutionRDG r delta)) 
     (deps (RDG_cons ass deps0)) = map phi 
     (deps (evolutionRDG (RDG_cons ass deps0) delta))).
-    { apply (isomorphismPhiEvolution _ asset). rewrite D. split;
+    { apply (commutativePhiEvolution _ asset). rewrite D. split;
     intros H''';discriminate H'''. }
     rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
     apply H2.
@@ -192,15 +222,37 @@ Proof.
     apply H''. rewrite H5. simpl. rewrite map_phi_evolution_theorem.
     apply In_map_theorem. apply H2.
   - simpl. rewrite D. rewrite <- (phiInd'Equivalence _ asset).
+    assert (Hsub : phiInd' (RDG_cons ass deps0) 
+    (map (fun x : RDG => Phi'Aux x delta) deps0) = phiInd' 
+    (evolutionRDG (RDG_cons ass deps0) delta) 
+    (map (fun x : RDG => Phi'Aux x delta) deps0)). 
+    apply (subsequentModelAxiom _ asset). auto.
+    rewrite Hsub. assert (H' : (map (fun x : RDG => Phi'Aux x delta) deps0) =
+    (map phi (deps (evolutionRDG (RDG_cons ass deps0) delta))) ->
+    phiInd' (evolutionRDG (RDG_cons ass deps0) delta)
+    (map (fun x : RDG => Phi'Aux x delta) deps0) =
+    phiInd' (evolutionRDG (RDG_cons ass deps0) delta)
+    (map phi (deps (evolutionRDG (RDG_cons ass deps0) delta)))).
+    intros. rewrite H3. reflexivity. apply H'.
+    assert (H'' : map (fun r : RDG => phi (evolutionRDG r delta)) 
+    (deps (RDG_cons ass deps0)) = map phi 
+    (deps (evolutionRDG (RDG_cons ass deps0) delta))).
+    { apply (commutativePhiEvolution _ asset). rewrite D. split;
+    intros H''';discriminate H'''. }
+    rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
+    apply H2.
+  - simpl. rewrite D. rewrite <- (phiInd'Equivalence _ asset).
+    apply In_map_theorem in H2. simpl in H2. rewrite H2.
+    apply (RemoveFeatureAxiom model asset) in D. rewrite <- D.
+    reflexivity.
+Qed.
 
 Theorem Phi'Equivalence {model asset :Type} `{Asset asset} `{Model model} :
   forall (m : model) (delta : RDG -> Evolution), 
   Phi'Fun m delta = phi (evolutionRDG (buildRDG m) delta).
 Proof.
-  intros. unfold Phi'Fun. remember (buildRDG m) as rdg.
-  induction rdg.
-  - reflexivity.
-  - 
+  intros. unfold Phi'Fun. apply Phi'EquivalenceAux.
+Qed.
 
 
 
