@@ -254,6 +254,63 @@ Proof.
   intros. unfold Phi'Fun. apply Phi'EquivalenceAux.
 Qed.
 
+Require Import Strings.String.
+Open Scope string_scope.
+
+Section Example.
+
+  Instance MensagePC : Asset (string * string) := {}.
+
+  Definition OxigenationRDG : RDG := 
+  RDG_cons ("Oxigenation","0.9970029 * rSQLite * rMemory") 
+  ((RDG_leaf ("SQLite","0.998001")) :: (RDG_leaf ("Memory","0.998001")) :: nil).
+
+  Definition deltaFunction (r : RDG) : Evolution :=
+    match r with
+    | RDG_leaf (a,b) => if a =? "SQLite" then Message else ID
+    | RDG_cons (a,b) l => if a =? "Oxigenation" then SubsequentModelEvol else ID
+    end.
+
+  (*Exemplo de Função de Evolução*)
+  Fixpoint EvolutionRDG' (delta : RDG -> Evolution) (r : RDG) : RDG :=
+    match r with
+    | RDG_leaf (a,b) => match delta r with
+                        | ID => r
+                        | Message => RDG_leaf (a,"0.555 * " ++ b)
+                        | PC => RDG_leaf ("True",b)
+                        | _ => r
+                        end
+    | RDG_cons (a,b) nil => match delta r with
+                            | ID => r
+                            | Message => RDG_cons (a,"0.555 * " ++ b) nil
+                            | PC => RDG_cons ("True",b) nil
+                            | AddFeature => RDG_cons (a,b) ((RDG_leaf ("True","1"))::nil)
+                            | _ => r
+                            end
+    | RDG_cons (a,b) (h::t) => match delta r with
+                               | ID => r
+                               | Message => RDG_cons (a,"0.555 * " ++ b)
+                                  (map (EvolutionRDG' delta) (h::t))
+                               | PC => RDG_cons ("True",b)
+                                  (map (EvolutionRDG' delta) (h::t))
+                               | AddFeature => RDG_cons (a,b) 
+                                  ((RDG_leaf ("True","1"))::
+                                  (map (EvolutionRDG' delta) (h::t)))
+                               | RemoveFeature => RDG_cons (a,b)
+                                  (map (EvolutionRDG' delta) t)
+                               | SubsequentModelEvol => RDG_cons (a,b)
+                                  (map (EvolutionRDG' delta) (h::t))
+                               end
+    end.
+
+  Theorem commutativeDepsEvolutionExample : 
+    deps (EvolutionRDG' deltaFunction OxigenationRDG) = 
+    map (fun r : RDG => EvolutionRDG' deltaFunction r) (deps OxigenationRDG).
+  Proof.
+    unfold OxigenationRDG. simpl. reflexivity.
+  Qed.
+
+End Example.
 
 
 
