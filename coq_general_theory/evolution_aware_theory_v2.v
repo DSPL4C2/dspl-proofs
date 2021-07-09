@@ -5,13 +5,21 @@ Require Import Lists.List.
 Load add.
 Load zip.
 Load aux_theorems.
+Load formula.
 
 Class Asset (asset : Type) : Type :=
-{}.
+{
+  featureOperation : asset -> RatExpr;
+  familyOperation : RatExpr -> list (ADD float) -> (ADD float)
+}.
 
 Inductive RDG {asset : Type} `{Asset asset} : Type :=
 | RDG_leaf (ass : asset)
 | RDG_cons (ass : asset) (deps : list RDG).
+
+Inductive RDGExpressions : Type :=
+| RDGE_leaf (exp : RatExpr)
+| RDGE_cons (exp : RatExpr) (deps : list RDGExpressions).
 
 Inductive Evolution : Type :=
   | ID
@@ -25,11 +33,43 @@ Class Model (model : Type) {asset : Type} `{Asset asset} : Type :=
 {
   buildRDG : model -> RDG;
   evolutionRDG : RDG -> (RDG -> Evolution) -> RDG;
-  phi : RDG -> ADD float;
-  phiInd' : RDG -> list (ADD float) -> ADD float;
   AddedRDG : RDG -> (RDG -> Evolution) -> RDG;
-  ADDdepsRmvCase : RDG -> (RDG -> Evolution) -> list (ADD float) -> list (ADD float);
+  ADDdepsRmvCase : RDG -> (RDG -> Evolution) -> list (ADD float) -> list (ADD float)
 }.
+
+(*Duas possíveis definições para phi*)
+
+Fixpoint featureStep {asset : Type} `{Asset asset} (r : RDG) : RDGExpressions :=
+  match r with
+  | RDG_leaf a => RDGE_leaf (featureOperation a)
+  | RDG_cons a deps => RDGE_cons (featureOperation a) (map featureStep deps)
+  end.
+
+Fixpoint familyStep {asset : Type} `{Asset asset} (r : RDGExpressions) :
+  list (ADD float) :=
+  match r with
+  | RDGE_leaf e => (familyOperation e nil) :: nil
+  | RDGE_cons e deps => 
+      let
+        subsequentADDs := fold_right (@app (ADD float)) nil (map familyStep deps)
+      in (familyOperation e subsequentADDs) :: subsequentADDs
+  end.
+
+Theorem familyStepNNil {asset : Type} `{Asset asset} : forall (r : RDGExpressions),
+  familyStep r <> nil.
+Proof.
+  destruct r;simpl;intros H';discriminate H'.
+Qed.
+
+Definition phi {asset : Type} `{Asset asset} (r : RDG) : ADD float :=
+  hd (constant (1%float)) (familyStep (featureStep r)).
+
+Definition phiInd' {asset : Type} `{Asset asset} (r : RDG) (l : list (ADD float)) :
+  ADD float := 
+  match r with
+  | RDG_leaf ass => familyOperation (featureOperation ass) l
+  | RDG_cons ass deps => familyOperation (featureOperation ass) l
+  end.
 
 Definition deps {asset : Type} `{Asset asset} (rdg : RDG) : list RDG :=
   match rdg with
