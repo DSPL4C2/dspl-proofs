@@ -46,23 +46,14 @@ Fixpoint featureStep {asset : Type} `{Asset asset} (r : RDG) : RDGExpressions :=
   end.
 
 Fixpoint familyStep {asset : Type} `{Asset asset} (r : RDGExpressions) :
-  list (ADD float) :=
+  ADD float :=
   match r with
-  | RDGE_leaf e => (familyOperation e nil) :: nil
-  | RDGE_cons e deps => 
-      let
-        subsequentADDs := fold_right (@app (ADD float)) nil (map familyStep deps)
-      in (familyOperation e subsequentADDs) :: subsequentADDs
+  | RDGE_leaf e => familyOperation e nil
+  | RDGE_cons e deps => familyOperation e (map familyStep deps)
   end.
 
-Theorem familyStepNNil {asset : Type} `{Asset asset} : forall (r : RDGExpressions),
-  familyStep r <> nil.
-Proof.
-  destruct r;simpl;intros H';discriminate H'.
-Qed.
-
 Definition phi {asset : Type} `{Asset asset} (r : RDG) : ADD float :=
-  hd (constant (1%float)) (familyStep (featureStep r)).
+  (familyStep (featureStep r)).
 
 Definition phiInd' {asset : Type} `{Asset asset} (r : RDG) (l : list (ADD float)) :
   ADD float := 
@@ -76,6 +67,9 @@ Definition deps {asset : Type} `{Asset asset} (rdg : RDG) : list RDG :=
   | RDG_leaf a => nil
   | RDG_cons a deps => deps
   end.
+
+Axiom well_founded_In_rdg : forall (asset : Type) `{Asset asset},
+  well_founded (fun r1 r2 : RDG => In r1 (deps r2)).
 
 Fixpoint Phi'Aux {model asset :Type} {H1 : Asset asset} {H2 : Model model}
   (rdg : RDG) (delta : RDG -> Evolution) : (ADD float) := 
@@ -109,10 +103,18 @@ Definition Phi'Fun {model asset :Type} `{Asset asset} `{Model model}
 (*Axioma que descreve o comportamento do phiInd' em relação ao phi.
   Utilizado para os casos em que a evolução não é ID*)
 
-Axiom phiInd'Equivalence : forall (model asset: Type) `{Asset asset} `{Model model},
+Theorem phiInd'Equivalence : forall (model asset: Type) `{Asset asset} `{Model model},
   forall (rdg : RDG),
   phiInd' rdg (map phi (deps rdg)) = phi rdg.
-
+Proof.
+  intros. destruct rdg.
+  - reflexivity.
+  - unfold phi. simpl. assert (H' : forall l : list RDG, 
+    (map (fun r : RDG => familyStep (featureStep r)) l) = 
+    (map familyStep (map featureStep l))).
+    + induction l. reflexivity. simpl. rewrite IHl. reflexivity.
+    + rewrite H'. reflexivity.
+Qed.
 (*Axioma que descreve o comportamento dos dependentes da evolução de um rdg
   cujo caso de evolução é a adição de feature*)
 
@@ -168,9 +170,6 @@ Proof.
   rewrite H'. apply (commutativeDepsEvolution model asset) in H2.
   rewrite H2. reflexivity.
 Qed.
-
-Axiom well_founded_In_rdg : forall (asset : Type) `{Asset asset},
-  well_founded (fun r1 r2 : RDG => In r1 (deps r2)).
 
 Theorem well_founded_phi_equivalence {model asset :Type} 
   `{Asset asset} `{Model model} : forall delta : RDG -> Evolution,
