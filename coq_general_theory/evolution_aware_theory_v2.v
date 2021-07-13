@@ -68,6 +68,18 @@ Definition deps {asset : Type} `{Asset asset} (rdg : RDG) : list RDG :=
   | RDG_cons a deps => deps
   end.
 
+Definition ass {asset : Type} `{Asset asset} (rdg : RDG) : asset :=
+  match rdg with
+  | RDG_leaf a => a
+  |RDG_cons a deps => a
+  end.
+
+Definition exp {asset : Type} `{Asset asset} (r : RDGExpressions) : RatExpr :=
+  match r with
+  | RDGE_leaf e => e
+  | RDGE_cons e deps => e
+  end.
+
 Axiom well_founded_In_rdg : forall (asset : Type) `{Asset asset},
   well_founded (fun r1 r2 : RDG => In r1 (deps r2)).
 
@@ -201,21 +213,21 @@ Proof.
   (*adicionando uma hipótese que é utilizada em vários casos do
   delta rdg*)
   assert (H' : (map (fun x : RDG => Phi'Aux x delta) deps0) =
-  (map phi (deps (evolutionRDG (RDG_cons ass deps0) delta))) ->
-  phiInd' (evolutionRDG (RDG_cons ass deps0) delta)
+  (map phi (deps (evolutionRDG (RDG_cons ass0 deps0) delta))) ->
+  phiInd' (evolutionRDG (RDG_cons ass0 deps0) delta)
   (map (fun x : RDG => Phi'Aux x delta) deps0) =
-  phiInd' (evolutionRDG (RDG_cons ass deps0) delta)
-  (map phi (deps (evolutionRDG (RDG_cons ass deps0) delta)))).
+  phiInd' (evolutionRDG (RDG_cons ass0 deps0) delta)
+  (map phi (deps (evolutionRDG (RDG_cons ass0 deps0) delta)))).
   { intros. rewrite H3. reflexivity. }
-  destruct (delta (RDG_cons ass deps0)) eqn:D;
+  destruct (delta (RDG_cons ass0 deps0)) eqn:D;
   simpl; rewrite D; try (apply (phiInd'IDEvolution model asset) in D; 
   rewrite D;reflexivity); rewrite <- (phiInd'Equivalence _ asset
-  (evolutionRDG (RDG_cons ass deps0) delta)).
+  (evolutionRDG (RDG_cons ass0 deps0) delta)).
   (*Message Case*)
   - apply H'.
     assert (H'' : map (fun r : RDG => phi (evolutionRDG r delta)) 
-    (deps (RDG_cons ass deps0)) = map phi 
-    (deps (evolutionRDG (RDG_cons ass deps0) delta))).
+    (deps (RDG_cons ass0 deps0)) = map phi 
+    (deps (evolutionRDG (RDG_cons ass0 deps0) delta))).
     { apply (commutativePhiEvolution _ asset). rewrite D. split;
     intros H''';discriminate H'''. }
     rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
@@ -223,8 +235,8 @@ Proof.
   (*Presence Condition Case*)
   - apply H'.
     assert (H'' : map (fun r : RDG => phi (evolutionRDG r delta)) 
-    (deps (RDG_cons ass deps0)) = map phi 
-    (deps (evolutionRDG (RDG_cons ass deps0) delta))).
+    (deps (RDG_cons ass0 deps0)) = map phi 
+    (deps (evolutionRDG (RDG_cons ass0 deps0) delta))).
     { apply (commutativePhiEvolution _ asset). rewrite D. split;
     intros H''';discriminate H'''. }
     rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
@@ -240,21 +252,22 @@ Proof.
     apply H'''. rewrite H5. simpl. rewrite map_phi_evolution_theorem.
     apply In_map_theorem. apply H2.
   (*Subsequent Model Evolution Case*)
-  - assert (Hsub : phiInd' (RDG_cons ass deps0) 
+  - assert (Hsub : phiInd' (RDG_cons ass0 deps0) 
     (map (fun x : RDG => Phi'Aux x delta) deps0) = phiInd' 
-    (evolutionRDG (RDG_cons ass deps0) delta) 
+    (evolutionRDG (RDG_cons ass0 deps0) delta) 
     (map (fun x : RDG => Phi'Aux x delta) deps0)). 
     apply (subsequentModelAxiom _ asset). auto.
+    unfold phiInd' in Hsub at 1.
     rewrite Hsub. assert (H'' : (map (fun x : RDG => Phi'Aux x delta) deps0) =
-    (map phi (deps (evolutionRDG (RDG_cons ass deps0) delta))) ->
-    phiInd' (evolutionRDG (RDG_cons ass deps0) delta)
+    (map phi (deps (evolutionRDG (RDG_cons ass0 deps0) delta))) ->
+    phiInd' (evolutionRDG (RDG_cons ass0 deps0) delta)
     (map (fun x : RDG => Phi'Aux x delta) deps0) =
-    phiInd' (evolutionRDG (RDG_cons ass deps0) delta)
-    (map phi (deps (evolutionRDG (RDG_cons ass deps0) delta)))).
+    phiInd' (evolutionRDG (RDG_cons ass0 deps0) delta)
+    (map phi (deps (evolutionRDG (RDG_cons ass0 deps0) delta)))).
     intros. rewrite H3. reflexivity. apply H''.
     assert (H''' : map (fun r : RDG => phi (evolutionRDG r delta)) 
-    (deps (RDG_cons ass deps0)) = map phi 
-    (deps (evolutionRDG (RDG_cons ass deps0) delta))).
+    (deps (RDG_cons ass0 deps0)) = map phi 
+    (deps (evolutionRDG (RDG_cons ass0 deps0) delta))).
     { apply (commutativePhiEvolution _ asset). rewrite D. split;
     intros H''';discriminate H'''. }
     rewrite <- H'''. simpl. simpl in H2. apply In_map_theorem.
