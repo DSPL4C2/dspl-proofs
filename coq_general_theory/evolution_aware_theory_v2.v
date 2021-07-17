@@ -9,8 +9,8 @@ Load formula.
 
 Class Asset (asset : Type) : Type :=
 {
-  featureOperation : asset -> RatExpr;
-  familyOperation : RatExpr -> list (ADD float) -> (ADD float)
+  liftedExprEvaluation : (ADD RatExpr) -> (ADD float);
+  familyOperation : (ADD RatExpr) -> list (ADD float) -> (ADD float)
 }.
 
 Inductive RDG {asset : Type} `{Asset asset} : Type :=
@@ -32,13 +32,14 @@ Inductive Evolution : Type :=
 Class Model (model : Type) {asset : Type} `{Asset asset} : Type :=
 {
   buildRDG : model -> RDG;
+  featureOperation : RDG -> ADD RatExpr;
   evolutionRDG : RDG -> (RDG -> Evolution) -> RDG;
   AddedRDG : RDG -> (RDG -> Evolution) -> RDG;
   ADDdepsRmvCase : RDG -> (RDG -> Evolution) -> list (ADD float) -> list (ADD float)
 }.
 
 (*Duas possíveis definições para phi*)
-
+(*
 Fixpoint featureStep {asset : Type} `{Asset asset} (r : RDG) : RDGExpressions :=
   match r with
   | RDG_leaf a => RDGE_leaf (featureOperation a)
@@ -51,33 +52,23 @@ Fixpoint familyStep {asset : Type} `{Asset asset} (r : RDGExpressions) :
   | RDGE_leaf e => familyOperation e nil
   | RDGE_cons e deps => familyOperation e (map familyStep deps)
   end.
-
-Definition phi {asset : Type} `{Asset asset} (r : RDG) : ADD float :=
-  (familyStep (featureStep r)).
-
-Definition phiInd' {asset : Type} `{Asset asset} (r : RDG) (l : list (ADD float)) :
-  ADD float := 
+*)
+Fixpoint phi {asset model : Type} `{Asset asset} `{Model model}
+  (r : RDG) : ADD float :=
   match r with
-  | RDG_leaf ass => familyOperation (featureOperation ass) l
-  | RDG_cons ass deps => familyOperation (featureOperation ass) l
+  | RDG_leaf ass => liftedExprEvaluation (featureOperation r)
+  | RDG_cons ass deps =>
+      familyOperation (featureOperation r) (map phi deps)
   end.
+
+Definition phiInd' {asset model : Type} `{Asset asset} `{Model model}
+  (r : RDG) (l : list (ADD float)) : ADD float := 
+  familyOperation (featureOperation r) l.
 
 Definition deps {asset : Type} `{Asset asset} (rdg : RDG) : list RDG :=
   match rdg with
   | RDG_leaf a => nil
   | RDG_cons a deps => deps
-  end.
-
-Definition ass {asset : Type} `{Asset asset} (rdg : RDG) : asset :=
-  match rdg with
-  | RDG_leaf a => a
-  |RDG_cons a deps => a
-  end.
-
-Definition exp {asset : Type} `{Asset asset} (r : RDGExpressions) : RatExpr :=
-  match r with
-  | RDGE_leaf e => e
-  | RDGE_cons e deps => e
   end.
 
 Axiom well_founded_In_rdg : forall (asset : Type) `{Asset asset},
@@ -112,7 +103,12 @@ Definition Phi'Fun {model asset :Type} `{Asset asset} `{Model model}
   (mod : model) (delta : RDG -> Evolution) : ADD float := 
   Phi'Aux (buildRDG mod) delta.
 
-(*Axioma que descreve o comportamento do phiInd' em relação ao phi.
+Axiom featureOperation_RDG_leaf : forall (asset model : Type) (Hass : Asset asset) 
+  (Hmodel : @Model model asset Hass), forall (rdg : RDG) (ass : asset), 
+  rdg = RDG_leaf ass -> familyOperation (featureOperation rdg) nil = 
+  liftedExprEvaluation (featureOperation rdg).
+
+(*Teorema que descreve o comportamento do phiInd' em relação ao phi.
   Utilizado para os casos em que a evolução não é ID*)
 
 Theorem phiInd'Equivalence : forall (model asset: Type) `{Asset asset} `{Model model},
@@ -120,12 +116,9 @@ Theorem phiInd'Equivalence : forall (model asset: Type) `{Asset asset} `{Model m
   phiInd' rdg (map phi (deps rdg)) = phi rdg.
 Proof.
   intros. destruct rdg.
-  - reflexivity.
-  - unfold phi. simpl. assert (H' : forall l : list RDG, 
-    (map (fun r : RDG => familyStep (featureStep r)) l) = 
-    (map familyStep (map featureStep l))).
-    + induction l. reflexivity. simpl. rewrite IHl. reflexivity.
-    + rewrite H'. reflexivity.
+  - unfold phi at 2. simpl. apply (featureOperation_RDG_leaf _ _ _ _ _ ass).
+    reflexivity.
+  - simpl. unfold phiInd'. reflexivity.
 Qed.
 (*Axioma que descreve o comportamento dos dependentes da evolução de um rdg
   cujo caso de evolução é a adição de feature*)
