@@ -41,8 +41,8 @@ Axiom featureOperation_RDG_leaf : forall (asset model : Type) (Hass : Asset asse
   rdg = RDG_leaf ass -> familyOperation (featureOperation rdg) nil = 
   liftedExprEvaluation (featureOperation rdg).
 
-(*Teorema que descreve o comportamento do partialFeatureFamilyStep em relação ao phi.
-  Utilizado para os casos em que a evolução não é ID*)
+(*Theorem that describe the behaviour of the partialFeatureFamilyStep in relation to featureFamily.
+  Used in cases which the evolution case is different then ID*)
 
 Theorem partialFeatureFamilyStepEquivalence : forall (model asset: Type) `{Asset asset} `{Model model},
   forall (rdg : RDG),
