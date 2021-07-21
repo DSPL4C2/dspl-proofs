@@ -19,8 +19,7 @@ Inductive Evolution : Type :=
   | Message
   | PC
   | AddFeature
-  | SubsequentModelEvol
-  | RemoveFeature.
+  | SubsequentModelEvol.
 
 Class Model (model : Type) {asset : Type} `{Asset asset} : Type :=
 {
@@ -66,13 +65,6 @@ Axiom subsequentModelAxiom : forall (model asset: Type) `{Asset asset}
   (l : list (ADD float)), delta r = SubsequentModelEvol -> 
   partialFeatureFamilyStep r l = partialFeatureFamilyStep (evolutionRDG r delta) l.
 
-
-Axiom RemoveFeatureAxiom : forall (model asset: Type) `{Asset asset} 
-  `{Model model}, forall (r : RDG) (delta : RDG -> Evolution),
-  delta r = RemoveFeature -> 
-  ADDdepsRmvCase r delta (map (fun rdg : RDG => featureFamily (evolutionRDG rdg delta))
-  (deps r)) = map featureFamily (deps (evolutionRDG r delta)).
-
 (*Axiom that describe the behaviour of a rdg evolution that the evolution case is
 the ID case*)
 
@@ -84,13 +76,12 @@ Axiom partialFeatureFamilyStepIDEvolution : forall (model asset: Type) `{Asset a
 the evolution don't change the RDG structure*)
 
 Axiom commutativeDepsEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
-  forall (rdg : RDG) (delta : RDG -> Evolution) , delta rdg <> AddFeature /\
-  delta rdg <> RemoveFeature -> deps (evolutionRDG rdg delta) =
+  forall (rdg : RDG) (delta : RDG -> Evolution) , delta rdg <> AddFeature ->
+  deps (evolutionRDG rdg delta) =
   map (fun r : RDG => evolutionRDG r delta) (deps rdg).
 
 Theorem commutativePhiEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
-  forall (rdg : RDG) (delta : RDG -> Evolution) , delta rdg <> AddFeature /\
-  delta rdg <> RemoveFeature ->
+  forall (rdg : RDG) (delta : RDG -> Evolution) , delta rdg <> AddFeature ->
    map (fun r : RDG => featureFamily (evolutionRDG r delta)) (deps rdg) = 
    map featureFamily (deps (evolutionRDG rdg delta)).
 Proof.

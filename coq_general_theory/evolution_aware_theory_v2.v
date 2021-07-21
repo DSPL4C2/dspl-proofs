@@ -19,13 +19,6 @@ Fixpoint featureFamily'Aux {model asset :Type} {H1 : Asset asset} {H2 : Model mo
                        | AddFeature => partialFeatureFamilyStep (evolutionRDG rdg delta)
                           ((featureFamily (AddedRDG rdg delta))::(map
                           (fun (x : RDG) => featureFamily'Aux (x) delta) deps))
-                       (*O coq estava reclamando da recursão ao 
-                         aplicar uma função nos deps, então foi preciso
-                         ajustar a função RemoveADDdeps para mudar a lista de ADDs,
-                         e não a lista de RDG*)
-                       | RemoveFeature => partialFeatureFamilyStep (evolutionRDG rdg delta)
-                          (ADDdepsRmvCase rdg delta 
-                          (map (fun (x : RDG) => featureFamily'Aux (x) delta) deps))
                        end
   end.
 
@@ -99,8 +92,8 @@ Proof.
     assert (H'' : map (fun r : RDG => featureFamily (evolutionRDG r delta)) 
     (deps (RDG_cons ass deps0)) = map featureFamily 
     (deps (evolutionRDG (RDG_cons ass deps0) delta))).
-    { apply (commutativePhiEvolution _ asset). rewrite D. split;
-    intros H''';discriminate H'''. }
+    { apply (commutativePhiEvolution _ asset). rewrite D.
+    intros H'''. discriminate H'''. }
     rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
     apply H2.
   (*Presence Condition Case*)
@@ -108,8 +101,8 @@ Proof.
     assert (H'' : map (fun r : RDG => featureFamily (evolutionRDG r delta)) 
     (deps (RDG_cons ass deps0)) = map featureFamily
     (deps (evolutionRDG (RDG_cons ass deps0) delta))).
-    { apply (commutativePhiEvolution _ asset). rewrite D. split;
-    intros H''';discriminate H'''. }
+    { apply (commutativePhiEvolution _ asset). rewrite D.
+    intros H'''. discriminate H'''. }
     rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
     apply H2.
   (*Add Feature Case*)
@@ -138,14 +131,10 @@ Proof.
     assert (H''' : map (fun r : RDG => featureFamily (evolutionRDG r delta)) 
     (deps (RDG_cons ass deps0)) = map featureFamily
     (deps (evolutionRDG (RDG_cons ass deps0) delta))).
-    { apply (commutativePhiEvolution _ asset). rewrite D. split;
-    intros H''';discriminate H'''. }
+    { apply (commutativePhiEvolution _ asset). rewrite D.
+    intros H'''. discriminate H'''. }
     rewrite <- H'''. simpl. simpl in H2. apply In_map_theorem.
     apply H2.
-  (*Remove Feature Case*)
-  - apply In_map_theorem in H2. simpl in H2. rewrite H2.
-    apply (RemoveFeatureAxiom model asset) in D. rewrite <- D.
-    reflexivity.
 Qed.
 
 Theorem Phi'Equivalence {model asset :Type} `{Asset asset} `{Model model} :
