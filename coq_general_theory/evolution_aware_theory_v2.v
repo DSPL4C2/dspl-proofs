@@ -19,10 +19,6 @@ Fixpoint featureFamily'Aux {model asset :Type} {H1 : Asset asset} {H2 : Model mo
                        | AddFeature => partialFeatureFamilyStep (evolutionRDG rdg delta)
                           ((featureFamily (AddedRDG rdg delta))::(map
                           (fun (x : RDG) => featureFamily'Aux (x) delta) deps))
-                       (*O coq estava reclamando da recursão ao 
-                         aplicar uma função nos deps, então foi preciso
-                         ajustar a função RemoveADDdeps para mudar a lista de ADDs,
-                         e não a lista de RDG*)
                        | RemoveFeature => partialFeatureFamilyStep (evolutionRDG rdg delta)
                           (ADDdepsRmvCase rdg delta 
                           (map (fun (x : RDG) => featureFamily'Aux (x) delta) deps))

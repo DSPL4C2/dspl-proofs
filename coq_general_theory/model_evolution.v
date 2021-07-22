@@ -66,6 +66,8 @@ Axiom subsequentModelAxiom : forall (model asset: Type) `{Asset asset}
   (l : list (ADD float)), delta r = SubsequentModelEvol -> 
   partialFeatureFamilyStep r l = partialFeatureFamilyStep (evolutionRDG r delta) l.
 
+(*Axiom that describe the behaviour of a rdg evolution that the evolution case is
+the RemoveFeature case*)
 
 Axiom RemoveFeatureAxiom : forall (model asset: Type) `{Asset asset} 
   `{Model model}, forall (r : RDG) (delta : RDG -> Evolution),
