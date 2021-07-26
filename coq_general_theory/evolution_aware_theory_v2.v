@@ -72,71 +72,70 @@ Proof.
   - simpl. rewrite IHl. reflexivity.
 Qed.
 
+Ltac map_deps_evolution_commutativity rdg delta D asset :=
+  assert (H'' : map (fun r : RDG => featureFamily (evolutionRDG r delta)) 
+  (deps rdg) = map featureFamily 
+  (deps (evolutionRDG rdg delta)));
+  try(apply (commutativePhiEvolution _ asset);rewrite D;split;
+  intros H''';discriminate H''').
+
+Ltac map_pFeatureFamily_same_list :=
+  assert (H'' :
+  forall (r : RDG) (l1 l2 : list (ADD float)), l1 = l2 ->
+  partialFeatureFamilyStep r l1 = partialFeatureFamilyStep r l2); 
+  try(intros r l1 l2 Hl;rewrite Hl;reflexivity).
+
+Ltac Phi'Equivalence_list_pFeatureFamily deps0 ass delta H :=
+  assert (H' : (map (fun x : RDG => featureFamily'Aux x delta) deps0) =
+  (map featureFamily (deps (evolutionRDG (RDG_cons ass deps0) delta))) ->
+  partialFeatureFamilyStep (evolutionRDG (RDG_cons ass deps0) delta)
+  (map (fun x : RDG => featureFamily'Aux x delta) deps0) =
+  partialFeatureFamilyStep (evolutionRDG (RDG_cons ass deps0) delta)
+  (map featureFamily (deps (evolutionRDG (RDG_cons ass deps0) delta))));
+  try(intros;rewrite H;reflexivity).
+
+Ltac map_pFeatureFamily_evolution deps0 ass delta asset:=
+  assert (Hsub : partialFeatureFamilyStep (RDG_cons ass deps0) 
+  (map (fun x : RDG => featureFamily'Aux x delta) deps0) = partialFeatureFamilyStep 
+  (evolutionRDG (RDG_cons ass deps0) delta) 
+  (map (fun x : RDG => featureFamily'Aux x delta) deps0));
+  try(apply (subsequentModelAxiom _ asset);auto).
+
+Ltac simplify_case_analysis deps0 ass delta model asset :=
+  destruct (delta (RDG_cons ass deps0)) eqn:D;
+  simpl; rewrite D; try (apply (partialFeatureFamilyStepIDEvolution model asset) in D; 
+  rewrite D;reflexivity); rewrite <- (partialFeatureFamilyStepEquivalence _ asset
+  (evolutionRDG (RDG_cons ass deps0) delta)).
+
 Theorem Phi'EquivalenceAux {model asset :Type} `{Asset asset} `{Model model} :
   forall (rdg : RDG) (delta : RDG -> Evolution),
   featureFamily'Aux rdg delta = featureFamily (evolutionRDG rdg delta).
 Proof.
   intros. apply well_founded_phi_equivalence. intros.
   destruct rx. reflexivity.
-  (*addicting a hypothesis that is used in many cases of the (delta rdg) case analisys*)
-  assert (H' : (map (fun x : RDG => featureFamily'Aux x delta) deps0) =
-  (map featureFamily (deps (evolutionRDG (RDG_cons ass deps0) delta))) ->
-  partialFeatureFamilyStep (evolutionRDG (RDG_cons ass deps0) delta)
-  (map (fun x : RDG => featureFamily'Aux x delta) deps0) =
-  partialFeatureFamilyStep (evolutionRDG (RDG_cons ass deps0) delta)
-  (map featureFamily (deps (evolutionRDG (RDG_cons ass deps0) delta)))).
-  { intros. rewrite H3. reflexivity. }
-  destruct (delta (RDG_cons ass deps0)) eqn:D;
-  simpl; rewrite D; try (apply (partialFeatureFamilyStepIDEvolution model asset) in D; 
-  rewrite D;reflexivity); rewrite <- (partialFeatureFamilyStepEquivalence _ asset
-  (evolutionRDG (RDG_cons ass deps0) delta)).
+  Phi'Equivalence_list_pFeatureFamily deps0 ass delta H3.
+  simplify_case_analysis deps0 ass delta model asset.
   (*Message Case*)
-  - apply H'.
-    assert (H'' : map (fun r : RDG => featureFamily (evolutionRDG r delta)) 
-    (deps (RDG_cons ass deps0)) = map featureFamily 
-    (deps (evolutionRDG (RDG_cons ass deps0) delta))).
-    { apply (commutativePhiEvolution _ asset). rewrite D. split;
-    intros H''';discriminate H'''. }
+  - apply H'. map_deps_evolution_commutativity (RDG_cons ass deps0) delta D asset.
     rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
     apply H2.
   (*Presence Condition Case*)
-  - apply H'.
-    assert (H'' : map (fun r : RDG => featureFamily (evolutionRDG r delta)) 
-    (deps (RDG_cons ass deps0)) = map featureFamily
-    (deps (evolutionRDG (RDG_cons ass deps0) delta))).
-    { apply (commutativePhiEvolution _ asset). rewrite D. split;
-    intros H''';discriminate H'''. }
+  - apply H'. map_deps_evolution_commutativity (RDG_cons ass deps0) delta D asset.
     rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
     apply H2.
   (*Add Feature Case*)
-  - assert (H'' :
-    forall (r : RDG) (l1 l2 : list (ADD float)), l1 = l2 ->
-    partialFeatureFamilyStep r l1 = partialFeatureFamilyStep r l2). intros. rewrite H3. reflexivity.
-    apply H''. apply (depsAddEvolution model asset) in D.
+  - map_pFeatureFamily_same_list. apply H''.
+    apply (depsAddEvolution model asset) in D.
     destruct D. destruct H3. destruct H3. destruct H4. rewrite H3. simpl.
     rewrite H4. assert (H''' : forall (l1 l2 : list (ADD float)) (r : ADD float),
     l1 = l2 -> r::l1 = r::l2). intros. rewrite H6. reflexivity.
     apply H'''. rewrite H5. simpl. rewrite map_phi_evolution_theorem.
     apply In_map_theorem. apply H2.
   (*Subsequent Model Evolution Case*)
-  - assert (Hsub : partialFeatureFamilyStep (RDG_cons ass deps0) 
-    (map (fun x : RDG => featureFamily'Aux x delta) deps0) = partialFeatureFamilyStep 
-    (evolutionRDG (RDG_cons ass deps0) delta) 
-    (map (fun x : RDG => featureFamily'Aux x delta) deps0)). 
-    apply (subsequentModelAxiom _ asset). auto.
-    rewrite Hsub. assert (H'' : (map (fun x : RDG => featureFamily'Aux x delta) deps0) =
-    (map featureFamily (deps (evolutionRDG (RDG_cons ass deps0) delta))) ->
-    partialFeatureFamilyStep (evolutionRDG (RDG_cons ass deps0) delta)
-    (map (fun x : RDG => featureFamily'Aux x delta) deps0) =
-    partialFeatureFamilyStep (evolutionRDG (RDG_cons ass deps0) delta)
-    (map featureFamily (deps (evolutionRDG (RDG_cons ass deps0) delta)))).
-    intros. rewrite H3. reflexivity. apply H''.
-    assert (H''' : map (fun r : RDG => featureFamily (evolutionRDG r delta)) 
-    (deps (RDG_cons ass deps0)) = map featureFamily
-    (deps (evolutionRDG (RDG_cons ass deps0) delta))).
-    { apply (commutativePhiEvolution _ asset). rewrite D. split;
-    intros H''';discriminate H'''. }
-    rewrite <- H'''. simpl. simpl in H2. apply In_map_theorem.
+  - map_pFeatureFamily_evolution deps0 ass delta asset.
+    rewrite Hsub. apply H'.
+    map_deps_evolution_commutativity (RDG_cons ass deps0) delta D asset.
+    rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
     apply H2.
   (*Remove Feature Case*)
   - apply In_map_theorem in H2. simpl in H2. rewrite H2.
