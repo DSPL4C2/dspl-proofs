@@ -32,11 +32,6 @@ Definition featureFamily' {model asset :Type} `{Asset asset} `{Model model}
 Axiom well_founded_In_rdg : forall (asset : Type) `{Asset asset},
   well_founded (fun r1 r2 : RDG => In r1 (deps r2)).
 
-Axiom featureOperation_RDG_leaf : forall (asset model : Type) (Hass : Asset asset) 
-  (Hmodel : @Model model asset Hass), forall (rdg : RDG) (ass : asset), 
-  rdg = RDG_leaf ass -> familyOperation (featureOperation rdg) nil = 
-  liftedExprEvaluation (featureOperation rdg).
-
 (*Theorem that describe the behaviour of the partialFeatureFamilyStep in relation to featureFamily.
   Used in cases which the evolution case is different then ID*)
 
@@ -44,10 +39,8 @@ Theorem partialFeatureFamilyStepEquivalence : forall (model asset: Type) `{Asset
   forall (rdg : RDG),
   partialFeatureFamilyStep rdg (map featureFamily (deps rdg)) = featureFamily rdg.
 Proof.
-  intros. destruct rdg.
-  - unfold featureFamily at 2. simpl. apply (featureOperation_RDG_leaf _ _ _ _ _ ass).
-    reflexivity.
-  - simpl. unfold partialFeatureFamilyStep. reflexivity.
+  intros. destruct rdg;
+  simpl; unfold partialFeatureFamilyStep; reflexivity.
 Qed.
 
 Theorem well_founded_phi_equivalence {model asset :Type} 

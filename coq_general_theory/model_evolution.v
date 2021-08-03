@@ -6,7 +6,6 @@ Load formula.
 
 Class Asset (asset : Type) : Type :=
 {
-  liftedExprEvaluation : (ADD RatExpr) -> (ADD float);
   familyOperation : (ADD RatExpr) -> list (ADD float) -> (ADD float)
 }.
 
@@ -34,7 +33,7 @@ Class Model (model : Type) {asset : Type} `{Asset asset} : Type :=
 Fixpoint featureFamily {asset model : Type} `{Asset asset} `{Model model}
   (r : RDG) : ADD float :=
   match r with
-  | RDG_leaf ass => liftedExprEvaluation (featureOperation r)
+  | RDG_leaf ass => familyOperation (featureOperation r) nil
   | RDG_cons ass deps =>
       familyOperation (featureOperation r) (map featureFamily deps)
   end.
