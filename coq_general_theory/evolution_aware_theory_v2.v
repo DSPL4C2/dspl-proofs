@@ -100,6 +100,8 @@ Ltac simplify_case_analysis deps0 ass delta model asset :=
   rewrite D;reflexivity); rewrite <- (partialFeatureFamilyStepEquivalence _ asset
   (evolutionRDG (RDG_cons ass deps0) delta)).
 
+Hint Resolve In_map_theorem : core.
+
 Theorem Phi'EquivalenceAux {model asset :Type} `{Asset asset} `{Model model} :
   forall (rdg : RDG) (delta : RDG -> Evolution),
   featureFamily'Aux rdg delta = featureFamily (evolutionRDG rdg delta).
@@ -109,27 +111,25 @@ Proof.
   Phi'Equivalence_list_pFeatureFamily deps0 ass delta H3.
   simplify_case_analysis deps0 ass delta model asset.
   (*Message Case*)
-  - apply H'. map_deps_evolution_commutativity (RDG_cons ass deps0) delta D asset.
-    rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
-    apply H2.
+  - map_deps_evolution_commutativity (RDG_cons ass deps0) delta D asset.
+    rewrite <- H'' in H' at 1. auto.
   (*Presence Condition Case*)
-  - apply H'. map_deps_evolution_commutativity (RDG_cons ass deps0) delta D asset.
-    rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
-    apply H2.
+  - map_deps_evolution_commutativity (RDG_cons ass deps0) delta D asset.
+    rewrite <- H'' in H' at 1. auto.
   (*Add Feature Case*)
-  - map_pFeatureFamily_same_list. apply H''.
+  - map_pFeatureFamily_same_list.
     apply (depsAddEvolution model asset) in D.
-    destruct D. destruct H3. destruct H3. destruct H4. rewrite H3. simpl.
-    rewrite H4. assert (H''' : forall (l1 l2 : list (ADD float)) (r : ADD float),
-    l1 = l2 -> r::l1 = r::l2). intros. rewrite H6. reflexivity.
-    apply H'''. rewrite H5. simpl. rewrite map_phi_evolution_theorem.
-    apply In_map_theorem. apply H2.
+    destruct D as [r [lr [H3 [H4 H5]]]].
+    assert (H''' : forall (l1 l2 : list (ADD float)) (r : ADD float),
+    l1 = l2 -> r::l1 = r::l2). 
+      { intros. rewrite H6. reflexivity. } 
+    apply H''. rewrite H3. simpl.
+    rewrite H4. apply H'''. rewrite H5. simpl.
+    rewrite map_phi_evolution_theorem. auto.
   (*Subsequent Model Evolution Case*)
   - map_pFeatureFamily_evolution deps0 ass delta asset.
-    rewrite Hsub. apply H'.
     map_deps_evolution_commutativity (RDG_cons ass deps0) delta D asset.
-    rewrite <- H''. simpl. simpl in H2. apply In_map_theorem.
-    apply H2.
+    rewrite Hsub. apply H'. rewrite <- H''. auto. 
   (*Remove Feature Case*)
   - apply In_map_theorem in H2. simpl in H2. rewrite H2.
     apply (RemoveFeatureAxiom model asset) in D. rewrite <- D.
