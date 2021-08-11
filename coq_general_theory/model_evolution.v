@@ -13,6 +13,12 @@ Inductive RDG {asset : Type} `{Asset asset} : Type :=
 | RDG_leaf (ass : asset)
 | RDG_cons (ass : asset) (deps : list RDG).
 
+Definition deps {asset : Type} `{Asset asset} (rdg : RDG) : list RDG :=
+  match rdg with
+  | RDG_leaf a => nil
+  | RDG_cons a deps => deps
+  end.
+
 Inductive Evolution : Type :=
   | ID
   | Message
@@ -23,11 +29,33 @@ Inductive Evolution : Type :=
 
 Class Model (model : Type) {asset : Type} `{Asset asset} : Type :=
 {
+(*------------------------------Functions-------------------------------------------*)
+
   buildRDG : model -> RDG;
   featureOperation : RDG -> ADD RatExpr;
   evolutionRDG : RDG -> (RDG -> Evolution) -> RDG;
   AddedRDG : RDG -> (RDG -> Evolution) -> RDG;
-  ADDdepsRmvCase : RDG -> (RDG -> Evolution) -> list (ADD float) -> list (ADD float)
+  ADDdepsRmvCase : RDG -> (RDG -> Evolution) -> list (ADD float) -> list (ADD float);
+
+(*------------------------------Axioms----------------------------------------------*)
+
+  (*Axiom that describe the behaviour of the dependents of a rdg evolution that
+  the evolution case is the addiction of a feature*)
+  depsAddEvolution :  forall (rdg : RDG) (delta : RDG -> Evolution), 
+  delta rdg = AddFeature -> exists (r : RDG) (lr : list RDG),
+  deps (evolutionRDG rdg delta) = r :: lr /\ r = AddedRDG rdg delta /\
+  lr = map (fun r : RDG => evolutionRDG r delta) (deps rdg);
+
+  (*Axiom that describe the behaviour of a rdg evolution that the evolution case is
+  the ID case*)
+  partialFeatureFamilyStepIDEvolution : forall (rdg : RDG)
+  (delta : RDG -> Evolution), delta rdg = ID -> evolutionRDG rdg delta = rdg;
+
+  (*Axiom that describe the preservation of the structure of the RDG in models that
+  the evolution don't change the RDG structure*)
+  commutativeDepsEvolution : forall (rdg : RDG) (delta : RDG -> Evolution) ,
+  delta rdg <> AddFeature /\ delta rdg <> RemoveFeature ->
+  deps (evolutionRDG rdg delta) = map (fun r : RDG => evolutionRDG r delta) (deps rdg)
 }.
 
 Fixpoint featureFamily {asset model : Type} `{Asset asset} `{Model model}
@@ -41,21 +69,6 @@ Fixpoint featureFamily {asset model : Type} `{Asset asset} `{Model model}
 Definition partialFeatureFamilyStep {asset model : Type} `{Asset asset} `{Model model}
   (r : RDG) (l : list (ADD float)) : ADD float := 
   familyOperation (featureOperation r) l.
-
-Definition deps {asset : Type} `{Asset asset} (rdg : RDG) : list RDG :=
-  match rdg with
-  | RDG_leaf a => nil
-  | RDG_cons a deps => deps
-  end.
-
-(*Axiom that describe the behaviour of the dependents of a rdg evolution that
-  the evolution case is the addiction of a feature*)
-
-Axiom depsAddEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
-  forall (rdg : RDG) (delta : RDG -> Evolution), delta rdg = AddFeature -> 
-  exists (r : RDG) (lr : list RDG), deps (evolutionRDG rdg delta) = r :: lr /\
-  r = AddedRDG rdg delta /\
-  lr = map (fun r : RDG => evolutionRDG r delta) (deps rdg).
 
 (*Axiom that describe the behaviour of a rdg evolution that the evolution case is
 the SubsequentModelEvol case*)
@@ -74,21 +87,6 @@ Axiom RemoveFeatureAxiom : forall (model asset: Type) `{Asset asset}
   ADDdepsRmvCase r delta (map (fun rdg : RDG => featureFamily (evolutionRDG rdg delta))
   (deps r)) = map featureFamily (deps (evolutionRDG r delta)).
 
-(*Axiom that describe the behaviour of a rdg evolution that the evolution case is
-the ID case*)
-
-Axiom partialFeatureFamilyStepIDEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
-  forall (rdg : RDG) (delta : RDG -> Evolution), delta rdg = ID ->
-  evolutionRDG rdg delta = rdg.
-
-(*Axiom that describe the preservation of the structure of the RDG in models that
-the evolution don't change the RDG structure*)
-
-Axiom commutativeDepsEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
-  forall (rdg : RDG) (delta : RDG -> Evolution) , delta rdg <> AddFeature /\
-  delta rdg <> RemoveFeature -> deps (evolutionRDG rdg delta) =
-  map (fun r : RDG => evolutionRDG r delta) (deps rdg).
-
 Theorem commutativePhiEvolution : forall (model asset: Type) `{Asset asset} `{Model model},
   forall (rdg : RDG) (delta : RDG -> Evolution) , delta rdg <> AddFeature /\
   delta rdg <> RemoveFeature ->
@@ -101,6 +99,6 @@ Proof.
   { induction l.
     - intros. reflexivity.
     - intros. simpl. rewrite IHl. reflexivity. }
-  rewrite H'. apply (commutativeDepsEvolution model asset) in H2.
+  rewrite H'. apply commutativeDepsEvolution in H2.
   rewrite H2. reflexivity.
 Qed.

@@ -65,7 +65,7 @@ Proof.
   - simpl. rewrite IHl. reflexivity.
 Qed.
 
-Ltac map_deps_evolution_commutativity rdg delta D asset :=
+Ltac map_deps_evolution_commutativity rdg delta D H'' asset:=
   assert (H'' : map (fun r : RDG => featureFamily (evolutionRDG r delta)) 
   (deps rdg) = map featureFamily 
   (deps (evolutionRDG rdg delta)));
@@ -96,11 +96,20 @@ Ltac map_pFeatureFamily_evolution deps0 ass delta asset:=
 
 Ltac simplify_case_analysis deps0 ass delta model asset :=
   destruct (delta (RDG_cons ass deps0)) eqn:D;
-  simpl; rewrite D; try (apply (partialFeatureFamilyStepIDEvolution model asset) in D; 
+  simpl; rewrite D; try (apply partialFeatureFamilyStepIDEvolution in D; 
   rewrite D;reflexivity); rewrite <- (partialFeatureFamilyStepEquivalence _ asset
   (evolutionRDG (RDG_cons ass deps0) delta)).
 
+Ltac finish_not_add_remove_case ass deps0 delta D H' H'' asset:= 
+    map_deps_evolution_commutativity (RDG_cons ass deps0) delta D H'' asset;
+    rewrite <- H'' in H' at 1; auto.
+
+Ltac list_axiom := assert (H''' : 
+    forall (l1 l2 : list (ADD float)) (r : ADD float),
+    l1 = l2 -> r::l1 = r::l2);try(intros l1 l2 r0 Hl12;rewrite Hl12; reflexivity).
+
 Hint Resolve In_map_theorem : core.
+Hint Resolve map_phi_evolution_theorem : core.
 
 Theorem Phi'EquivalenceAux {model asset :Type} `{Asset asset} `{Model model} :
   forall (rdg : RDG) (delta : RDG -> Evolution),
@@ -109,27 +118,19 @@ Proof.
   intros. apply well_founded_phi_equivalence. intros.
   destruct rx. reflexivity.
   Phi'Equivalence_list_pFeatureFamily deps0 ass delta H3.
-  simplify_case_analysis deps0 ass delta model asset.
-  (*Message Case*)
-  - map_deps_evolution_commutativity (RDG_cons ass deps0) delta D asset.
-    rewrite <- H'' in H' at 1. auto.
-  (*Presence Condition Case*)
-  - map_deps_evolution_commutativity (RDG_cons ass deps0) delta D asset.
-    rewrite <- H'' in H' at 1. auto.
+  simplify_case_analysis deps0 ass delta model asset;
+  try (finish_not_add_remove_case ass deps0 delta D H' H'' asset).
   (*Add Feature Case*)
   - map_pFeatureFamily_same_list.
-    apply (depsAddEvolution model asset) in D.
-    destruct D as [r [lr [H3 [H4 H5]]]].
-    assert (H''' : forall (l1 l2 : list (ADD float)) (r : ADD float),
-    l1 = l2 -> r::l1 = r::l2). 
-      { intros. rewrite H6. reflexivity. } 
-    apply H''. rewrite H3. simpl.
+    apply depsAddEvolution in D.
+    destruct D as [r [lr [H3 [H4 H5]]]]. list_axiom. 
+    apply H''. rewrite H3. simpl. 
     rewrite H4. apply H'''. rewrite H5. simpl.
     rewrite map_phi_evolution_theorem. auto.
   (*Subsequent Model Evolution Case*)
   - map_pFeatureFamily_evolution deps0 ass delta asset.
-    map_deps_evolution_commutativity (RDG_cons ass deps0) delta D asset.
-    rewrite Hsub. apply H'. rewrite <- H''. auto. 
+    map_deps_evolution_commutativity (RDG_cons ass deps0) delta D H''' asset.
+    rewrite Hsub. auto.
   (*Remove Feature Case*)
   - apply In_map_theorem in H2. simpl in H2. rewrite H2.
     apply (RemoveFeatureAxiom model asset) in D. rewrite <- D.
