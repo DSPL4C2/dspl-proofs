@@ -5,10 +5,10 @@ Load aux_theorems.
 Load model_evolution.
 
 Fixpoint featureFamily'Aux {model asset :Type} {H1 : Asset asset} {H2 : Model model}
-  (rdg : RDG) (delta : RDG -> Evolution) : (ADD float) := 
+  (rdg : RDG) (delta : RDG -> Evolution) : (string * (ADD float)) := 
   match rdg with
-  | RDG_leaf a => featureFamily (evolutionRDG rdg delta)
-  | RDG_cons a deps => match (delta rdg) with
+  | RDG_leaf s a => featureFamily (evolutionRDG rdg delta)
+  | RDG_cons s a deps => match (delta rdg) with
                        | ID => featureFamily rdg
                        | Message => partialFeatureFamilyStep (evolutionRDG rdg delta)
                           (map (fun (x : RDG) => featureFamily'Aux (x) delta) deps)
@@ -26,7 +26,7 @@ Fixpoint featureFamily'Aux {model asset :Type} {H1 : Asset asset} {H2 : Model mo
   end.
 
 Definition featureFamily' {model asset :Type} `{Asset asset} `{Model model}
-  (mod : model) (delta : RDG -> Evolution) : ADD float := 
+  (mod : model) (delta : RDG -> Evolution) : (string * (ADD float)) := 
   featureFamily'Aux (buildRDG mod) delta.
 
 Axiom well_founded_In_rdg : forall (asset : Type) `{Asset asset},
@@ -74,38 +74,38 @@ Ltac map_deps_evolution_commutativity rdg delta D H'' asset:=
 
 Ltac map_pFeatureFamily_same_list :=
   assert (H'' :
-  forall (r : RDG) (l1 l2 : list (ADD float)), l1 = l2 ->
+  forall (r : RDG) (l1 l2 : list (string * (ADD float))), l1 = l2 ->
   partialFeatureFamilyStep r l1 = partialFeatureFamilyStep r l2); 
   try(intros r l1 l2 Hl;rewrite Hl;reflexivity).
 
-Ltac Phi'Equivalence_list_pFeatureFamily deps0 ass delta H :=
+Ltac Phi'Equivalence_list_pFeatureFamily deps0 ass s delta H :=
   assert (H' : (map (fun x : RDG => featureFamily'Aux x delta) deps0) =
-  (map featureFamily (deps (evolutionRDG (RDG_cons ass deps0) delta))) ->
-  partialFeatureFamilyStep (evolutionRDG (RDG_cons ass deps0) delta)
+  (map featureFamily (deps (evolutionRDG (RDG_cons s ass deps0) delta))) ->
+  partialFeatureFamilyStep (evolutionRDG (RDG_cons s ass deps0) delta)
   (map (fun x : RDG => featureFamily'Aux x delta) deps0) =
-  partialFeatureFamilyStep (evolutionRDG (RDG_cons ass deps0) delta)
-  (map featureFamily (deps (evolutionRDG (RDG_cons ass deps0) delta))));
+  partialFeatureFamilyStep (evolutionRDG (RDG_cons s ass deps0) delta)
+  (map featureFamily (deps (evolutionRDG (RDG_cons s ass deps0) delta))));
   try(intros;rewrite H;reflexivity).
 
-Ltac map_pFeatureFamily_evolution deps0 ass delta asset:=
-  assert (Hsub : partialFeatureFamilyStep (RDG_cons ass deps0) 
+Ltac map_pFeatureFamily_evolution deps0 ass s delta asset:=
+  assert (Hsub : partialFeatureFamilyStep (RDG_cons s ass deps0) 
   (map (fun x : RDG => featureFamily'Aux x delta) deps0) = partialFeatureFamilyStep 
-  (evolutionRDG (RDG_cons ass deps0) delta) 
+  (evolutionRDG (RDG_cons s ass deps0) delta) 
   (map (fun x : RDG => featureFamily'Aux x delta) deps0));
   try(apply (subsequentModelAxiom _ asset);auto).
 
-Ltac simplify_case_analysis deps0 ass delta model asset :=
-  destruct (delta (RDG_cons ass deps0)) eqn:D;
+Ltac simplify_case_analysis deps0 ass s delta model asset :=
+  destruct (delta (RDG_cons s ass deps0)) eqn:D;
   simpl; rewrite D; try (apply partialFeatureFamilyStepIDEvolution in D; 
   rewrite D;reflexivity); rewrite <- (partialFeatureFamilyStepEquivalence _ asset
-  (evolutionRDG (RDG_cons ass deps0) delta)).
+  (evolutionRDG (RDG_cons s ass deps0) delta)).
 
-Ltac finish_not_add_remove_case ass deps0 delta D H' H'' asset:= 
-    map_deps_evolution_commutativity (RDG_cons ass deps0) delta D H'' asset;
+Ltac finish_not_add_remove_case ass deps0 s delta D H' H'' asset:= 
+    map_deps_evolution_commutativity (RDG_cons s ass deps0) delta D H'' asset;
     rewrite <- H'' in H' at 1; auto.
 
 Ltac list_axiom := assert (H''' : 
-    forall (l1 l2 : list (ADD float)) (r : ADD float),
+    forall (l1 l2 : list (string * (ADD float))) (r : (string * (ADD float))),
     l1 = l2 -> r::l1 = r::l2);try(intros l1 l2 r0 Hl12;rewrite Hl12; reflexivity).
 
 Hint Resolve In_map_theorem : core.
@@ -117,9 +117,9 @@ Theorem Phi'EquivalenceAux {model asset :Type} `{Asset asset} `{Model model} :
 Proof.
   intros. apply well_founded_phi_equivalence. intros.
   destruct rx. reflexivity.
-  Phi'Equivalence_list_pFeatureFamily deps0 ass delta H3.
-  simplify_case_analysis deps0 ass delta model asset;
-  try (finish_not_add_remove_case ass deps0 delta D H' H'' asset).
+  Phi'Equivalence_list_pFeatureFamily deps0 ass s delta H3.
+  simplify_case_analysis deps0 ass s delta model asset;
+  try (finish_not_add_remove_case ass deps0 s delta D H' H'' asset).
   (*Add Feature Case*)
   - map_pFeatureFamily_same_list.
     apply depsAddEvolution in D.
@@ -128,8 +128,8 @@ Proof.
     rewrite H4. apply H'''. rewrite H5. simpl.
     rewrite map_phi_evolution_theorem. auto.
   (*Subsequent Model Evolution Case*)
-  - map_pFeatureFamily_evolution deps0 ass delta asset.
-    map_deps_evolution_commutativity (RDG_cons ass deps0) delta D H''' asset.
+  - map_pFeatureFamily_evolution deps0 ass s delta asset.
+    map_deps_evolution_commutativity (RDG_cons s ass deps0) delta D H''' asset.
     rewrite Hsub. auto.
   (*Remove Feature Case*)
   - apply In_map_theorem in H2. simpl in H2. rewrite H2.

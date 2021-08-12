@@ -1,22 +1,24 @@
 Require Import Floats.
 Require Import Lists.List.
+Require Import String.
 
 Load add.
 Load formula.
 
 Class Asset (asset : Type) : Type :=
 {
-  familyOperation : (ADD RatExpr) -> list (ADD float) -> (ADD float)
+  familyOperation : (string * (ADD RatExpr)) -> 
+    list (string * (ADD float)) -> (string * (ADD float))
 }.
 
 Inductive RDG {asset : Type} `{Asset asset} : Type :=
-| RDG_leaf (ass : asset)
-| RDG_cons (ass : asset) (deps : list RDG).
+| RDG_leaf (s : string) (ass : asset)
+| RDG_cons (s : string) (ass : asset) (deps : list RDG).
 
 Definition deps {asset : Type} `{Asset asset} (rdg : RDG) : list RDG :=
   match rdg with
-  | RDG_leaf a => nil
-  | RDG_cons a deps => deps
+  | RDG_leaf s a => nil
+  | RDG_cons s a deps => deps
   end.
 
 Inductive Evolution : Type :=
@@ -32,10 +34,11 @@ Class Model (model : Type) {asset : Type} `{Asset asset} : Type :=
 (*------------------------------Functions-------------------------------------------*)
 
   buildRDG : model -> RDG;
-  featureOperation : RDG -> ADD RatExpr;
+  featureOperation : RDG -> (string * (ADD RatExpr));
   evolutionRDG : RDG -> (RDG -> Evolution) -> RDG;
   AddedRDG : RDG -> (RDG -> Evolution) -> RDG;
-  ADDdepsRmvCase : RDG -> (RDG -> Evolution) -> list (ADD float) -> list (ADD float);
+  ADDdepsRmvCase : RDG -> (RDG -> Evolution) -> list (string * (ADD float)) ->
+    list (string * (ADD float));
 
 (*------------------------------Axioms----------------------------------------------*)
 
@@ -59,15 +62,15 @@ Class Model (model : Type) {asset : Type} `{Asset asset} : Type :=
 }.
 
 Fixpoint featureFamily {asset model : Type} `{Asset asset} `{Model model}
-  (r : RDG) : ADD float :=
+  (r : RDG) : (string * (ADD float)) :=
   match r with
-  | RDG_leaf ass => familyOperation (featureOperation r) nil
-  | RDG_cons ass deps =>
+  | RDG_leaf s ass => familyOperation (featureOperation r) nil
+  | RDG_cons s ass deps =>
       familyOperation (featureOperation r) (map featureFamily deps)
   end.
 
 Definition partialFeatureFamilyStep {asset model : Type} `{Asset asset} `{Model model}
-  (r : RDG) (l : list (ADD float)) : ADD float := 
+  (r : RDG) (l : list (string * (ADD float))) : (string * (ADD float)) := 
   familyOperation (featureOperation r) l.
 
 (*Axiom that describe the behaviour of a rdg evolution that the evolution case is
@@ -75,7 +78,7 @@ the SubsequentModelEvol case*)
 
 Axiom subsequentModelAxiom : forall (model asset: Type) `{Asset asset} 
   `{Model model}, forall (r : RDG) (delta : RDG -> Evolution)
-  (l : list (ADD float)), delta r = SubsequentModelEvol -> 
+  (l : list (string * (ADD float))), delta r = SubsequentModelEvol -> 
   partialFeatureFamilyStep r l = partialFeatureFamilyStep (evolutionRDG r delta) l.
 
 (*Axiom that describe the behaviour of a rdg evolution that the evolution case is
