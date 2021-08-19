@@ -2,12 +2,12 @@ Require Import Floats.
 Require Import Lists.List.
 Require Import String.
 
-Load add.
+Load ADDfloats.
 Load formula.
 
 Class Asset (asset : Type) : Type :=
 {
-  familyOperation : (string * (ADD RatExpr)) -> 
+  familyOperation : (string * RatExpr) -> 
     list (string * (ADD float)) -> (string * (ADD float))
 }.
 
@@ -34,7 +34,7 @@ Class Model (model : Type) {asset : Type} `{Asset asset} : Type :=
 (*------------------------------Functions-------------------------------------------*)
 
   buildRDG : model -> RDG;
-  featureOperation : RDG -> (string * (ADD RatExpr));
+  featureOperation : RDG -> (string * RatExpr);
   evolutionRDG : RDG -> (RDG -> Evolution) -> RDG;
   AddedRDG : RDG -> (RDG -> Evolution) -> RDG;
   ADDdepsRmvCase : RDG -> (RDG -> Evolution) -> list (string * (ADD float)) ->
