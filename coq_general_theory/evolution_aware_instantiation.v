@@ -112,6 +112,12 @@ Proof.
   apply H'''. apply IHl. intros. apply H. right. auto.
 Qed.
 
+Theorem fun_list_RDG : forall (f : RDG -> (string * (ADD float))) (g : RDG -> RDG)
+  (l : list RDG), map (fun rdg : RDG => f (g rdg)) l = map f (map g l).
+Proof.
+  intros. induction l. auto. simpl. rewrite IHl. auto.
+Qed.
+
 Program Instance InstanceModel : Model InductiveModel := 
 {
   buildRDG := (fun m : InductiveModel => match m with
@@ -157,6 +163,25 @@ Qed. }
       destruct H'.
 Qed. }
 
+Theorem Instance_subsequentModelAxiom : forall (r : RDG) (delta : RDG -> Evolution)
+  (l : list (string * (ADD float))), delta r = SubsequentModelEvol -> 
+  partialFeatureFamilyStep r l = partialFeatureFamilyStep (evolutionRDG r delta) l.
+Proof.
+  intros. unfold partialFeatureFamilyStep. destruct r;destruct ass;
+  unfold evolutionRDG; simpl; rewrite H; auto.
+Qed.
+
+Theorem Instance_RemoveFeatureAxiom : forall (r : RDG) (delta : RDG -> Evolution),
+  delta r = RemoveFeature ->
+  ADDdepsRmvCase r delta (map (fun rdg : RDG => featureFamily (evolutionRDG rdg delta))
+  (deps r)) = map featureFamily (deps (evolutionRDG r delta)).
+Proof.
+  intros. destruct r; destruct ass.
+  - simpl. rewrite H. auto.
+  - destruct deps0.
+    + simpl. rewrite H. auto.
+    + simpl. rewrite H. simpl. apply fun_list_RDG.
+Qed.
 
 
 
