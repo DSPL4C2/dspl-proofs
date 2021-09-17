@@ -28,18 +28,13 @@ Fixpoint func_familyOperation (re : RatExpr)
       (func_familyOperation r l)
   end.
 
-Instance PC_Rat_Expr : Asset (string * RatExpr) := 
+Instance AnalysisRDG : @Analysis (string * RatExpr)(string * RatExpr) := 
 {
+  modelChecking := (fun p : (string * RatExpr) => snd(p));
   familyOperation := 
     (fun ( p : string * RatExpr) (l : list (string * (ADD float))) =>
     ((fst p) , func_familyOperation (snd p) l))
 }.
-
-Definition func_featureOperation (r : RDG) : (string * RatExpr) :=
-  match r with
-  | RDG_leaf s p => (s , snd p)
-  | RDG_cons s p l => (s , snd p)
-  end.
 
 Fixpoint RemoveVarExpr (s : string) (r : RatExpr) :=
   match r with
@@ -50,12 +45,6 @@ Fixpoint RemoveVarExpr (s : string) (r : RatExpr) :=
   | Mul r1 r2 => Mul (RemoveVarExpr s r1) (RemoveVarExpr s r2)
   | Div r1 r2 => Div (RemoveVarExpr s r1) (RemoveVarExpr s r2)
   | Minus r => Minus (RemoveVarExpr s r)
-  end.
-
-Definition nameRDG (r : RDG) : string :=
-  match r with
-  | RDG_leaf s _ => s
-  | RDG_cons s _ _ => s
   end.
 
 Fixpoint Instance_EvolutionRDG (delta : RDG -> Evolution) (r : RDG) : RDG :=
@@ -82,13 +71,14 @@ Fixpoint Instance_EvolutionRDG (delta : RDG -> Evolution) (r : RDG) : RDG :=
                               | RemoveFeature => match l with
                                                  | nil => r
                                                  | h :: t => RDG_cons s 
-                                                  (pc , RemoveVarExpr (nameRDG h) re)
+                                                  (pc , RemoveVarExpr (rdgName h) re)
                                                   (map (Instance_EvolutionRDG delta) t)
                                                  end
                               end
   end.
 
-Definition Instance_ADDdepsRmvCase (r : RDG) (delta : RDG -> Evolution)
+Definition Instance_ADDdepsRmvCase (r : @RDG (string * RatExpr))
+  (delta : (@RDG (string * RatExpr)) -> Evolution)
   (l : list (string * (ADD float))) : list (string * (ADD float)) :=
   match l with
   | nil => nil
@@ -96,9 +86,10 @@ Definition Instance_ADDdepsRmvCase (r : RDG) (delta : RDG -> Evolution)
   end.
 
 Inductive InductiveModel : Type :=
-  | Mod (r : RDG).
+  | Mod (r : @RDG (string * RatExpr)).
 
-Axiom ID_deps_evolution : forall (r : RDG) (delta : RDG -> Evolution),
+Axiom ID_deps_evolution : forall (r : @RDG (string * RatExpr))
+  (delta : (@RDG (string * RatExpr)) -> Evolution),
   delta r = ID -> (forall (rdg : RDG), In rdg (deps r) -> delta rdg = ID).
 
 Theorem ID_Evolution_list : forall (delta : RDG -> Evolution) (l : list RDG),
@@ -107,12 +98,14 @@ Proof.
   intros. induction l. auto. simpl. assert (H' : delta a = ID).
   apply H. left. reflexivity. assert (H'' : Instance_EvolutionRDG delta a = a).
   destruct a;destruct ass; unfold Instance_EvolutionRDG; rewrite H';auto.
-  rewrite H''. assert (H''' : forall (r : RDG) (l1 l2 : list RDG),
+  rewrite H''. assert (H''' : forall (r : @RDG (string * RatExpr))
+  (l1 l2 : list RDG),
   l1 = l2 -> r :: l1 = r :: l2). intros. rewrite H0. reflexivity.
   apply H'''. apply IHl. intros. apply H. right. auto.
 Qed.
 
-Theorem fun_list_RDG : forall (f : RDG -> (string * (ADD float))) (g : RDG -> RDG)
+Theorem fun_list_RDG : forall (f : (@RDG (string * RatExpr)) ->
+  (string * (ADD float))) (g : (@RDG (string * RatExpr)) -> (@RDG (string * RatExpr)))
   (l : list RDG), map (fun rdg : RDG => f (g rdg)) l = map f (map g l).
 Proof.
   intros. induction l. auto. simpl. rewrite IHl. auto.
@@ -123,8 +116,6 @@ Program Instance InstanceModel : Model InductiveModel :=
   buildRDG := (fun m : InductiveModel => match m with
                                          | Mod r => r
                                          end);
-
-  featureOperation := func_featureOperation;
 
   evolutionRDG := (fun (r : RDG) (d : RDG -> Evolution) =>
       Instance_EvolutionRDG d r);
@@ -163,13 +154,9 @@ Qed. }
       destruct H'.
 Qed. }
 
-Theorem Instance_subsequentModelAxiom : forall (r : RDG) (delta : RDG -> Evolution)
-  (l : list (string * (ADD float))), delta r = SubsequentModelEvol -> 
-  partialFeatureFamilyStep r l = partialFeatureFamilyStep (evolutionRDG r delta) l.
-Proof.
-  intros. unfold partialFeatureFamilyStep. destruct r;destruct ass;
-  unfold evolutionRDG; simpl; rewrite H; auto.
-Qed.
+{ Next Obligation.
+  destruct r;destruct ass; simpl; rewrite H;auto.
+Qed. }
 
 Theorem Instance_RemoveFeatureAxiom : forall (r : RDG) (delta : RDG -> Evolution),
   delta r = RemoveFeature ->
