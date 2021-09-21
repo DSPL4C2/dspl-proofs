@@ -90,12 +90,15 @@ Ltac Phi'Equivalence_list_pFeatureFamily deps0 ass s delta H :=
   (map featureFamily (deps (evolutionRDG (RDG_cons s ass deps0) delta))));
   try(intros;rewrite H;reflexivity).
 
-Ltac map_pFeatureFamily_evolution deps0 ass s delta:=
+Ltac map_pFeatureFamily_evolution deps0 ass s delta D H2 H3:=
   assert (Hsub : partialFeatureFamilyStep (RDG_cons s ass deps0) 
   (map (fun x : RDG => featureFamily'Aux x delta) deps0) = partialFeatureFamilyStep 
-  (evolutionRDG (RDG_cons s ass deps0) delta) 
+  (evolutionRDG (RDG_cons s ass deps0) delta)
   (map (fun x : RDG => featureFamily'Aux x delta) deps0));
-  try(apply (subsequentModelAxiom );auto).
+  try( apply subsequentModelAxiom in D;
+  unfold partialFeatureFamilyStep; unfold featureOperation;
+  destruct (evolutionRDG (RDG_cons s ass deps0) delta);
+  destruct D; simpl in H2; simpl in H3; rewrite H2; rewrite H3; auto).
 
 Ltac simplify_case_analysis deps0 ass s delta:=
   destruct (delta (RDG_cons s ass deps0)) eqn:D;
@@ -132,21 +135,7 @@ Proof.
     rewrite H4. apply H'''. rewrite H5. simpl.
     rewrite map_phi_evolution_theorem. auto.
   (*Subsequent Model Evolution Case*)
-  - assert (Hsub : partialFeatureFamilyStep (RDG_cons s ass deps0) 
-    (map (fun x : RDG => featureFamily'Aux x delta) deps0) = partialFeatureFamilyStep 
-    (evolutionRDG (RDG_cons s ass deps0) delta)
-    (map (fun x : RDG => featureFamily'Aux x delta) deps0)).
-    apply subsequentModelAxiom in D.
-    unfold partialFeatureFamilyStep. unfold featureOperation.
-    destruct (evolutionRDG (RDG_cons s ass deps0) delta);
-    destruct D; simpl in H2; simpl in H3; rewrite H2; rewrite H3; auto.
-    rewrite Hsub. map_pFeatureFamily_same_list H'''. apply H'''.
-    assert (H'''' : map (fun r : RDG => featureFamily (evolutionRDG r delta)) 
-    (deps (RDG_cons s ass deps0)) =
-    map featureFamily (deps (evolutionRDG (RDG_cons s ass deps0) delta))).
-    try(apply (commutativePhiEvolution);rewrite D;split;
-    intros H'''';discriminate H''''). rewrite <- H''''.
-    apply In_map_theorem. simpl. apply H1.
+  - map_pFeatureFamily_evolution deps0 ass s delta D H2 H3.
   (*Remove Feature Case*)
   - apply In_map_theorem in H1. simpl in H1. rewrite H1.
     apply (RemoveFeatureAxiom model _ analysis) in D. rewrite <- D.
